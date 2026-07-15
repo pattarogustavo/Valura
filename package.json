@@ -2,6 +2,9 @@
   "name": "valura",
   "version": "1.0.0",
   "main": "expo-router/entry",
+  "engines": {
+    "node": ">=20.18.1"
+  },
   "scripts": {
     "start": "expo start",
     "ios": "expo run:ios",
