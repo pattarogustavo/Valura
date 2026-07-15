@@ -13,7 +13,7 @@
       "ios": { "simulator": false }
     },
     "production": {
-      "ios": { "image": "latest" },
+      "ios": { "image": "macos-sonoma-14.6-xcode-16.2" },
       "android": { "buildType": "app-bundle" }
     }
   },
