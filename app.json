@@ -30,13 +30,16 @@
       }
     },
     "plugins": [
-      "expo-router",
-      "expo-apple-authentication",
-      [
-        "expo-image-picker",
-        { "photosPermission": "Allow Valura to access your photos to update your profile picture." }
-      ]
-    ],
+  "./plugins/with-fmt-fix.js",
+  "expo-router",
+  "expo-apple-authentication",
+  [
+    "expo-image-picker",
+    {
+      "photosPermission": "Allow Valura to access your photos to update your profile picture."
+    }
+  ]
+],
     "extra": {
       "eas": {
         "projectId": "f79fcae6-3415-4390-abca-f02a0c9a493b"
