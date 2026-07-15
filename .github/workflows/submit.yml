@@ -1,9 +1,9 @@
-name: Submit to TestFlight
+name: Build and Submit to TestFlight
 on:
   workflow_dispatch:
 
 jobs:
-  submit:
+  build-and-submit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,5 +16,5 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
       - name: Install dependencies
         run: npm install
-      - name: Submit to App Store
-        run: eas submit --platform ios --profile production --latest --non-interactive
+      - name: Build and Submit iOS
+        run: eas build --platform ios --profile production --auto-submit --non-interactive
