@@ -17,4 +17,4 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Build and Submit iOS
-        run: eas build --platform ios --profile production --auto-submit --non-interactive --clear-credentials
+        run: eas build --platform ios --profile production --auto-submit --non-interactive
