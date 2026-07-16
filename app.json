@@ -30,7 +30,7 @@
       }
     },
     "plugins": [
-  "./plugins/with-fmt-fix.js",
+  "./plugins/with-fmt-fix",
   "expo-router",
   "expo-apple-authentication",
   [
