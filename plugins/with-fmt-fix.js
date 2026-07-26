@@ -27,15 +27,15 @@ module.exports = function withFmtFix(config) {
         cfg.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEVAL=0'
       end
     end
-  end
-`;
+  end`;
 
-      // Insere antes do último 'end' do ficheiro
-      // que é sempre o fecho do bloco post_install
-      const lastEndIndex = content.lastIndexOf('\nend');
-      if (lastEndIndex !== -1) {
-        content = content.slice(0, lastEndIndex) + '\n' + fmtFix + content.slice(lastEndIndex);
-      }
+      // Encontra o post_install e insere o código dentro dele
+      content = content.replace(
+        /(post_install do \|installer\|)([\s\S]*?)(^end)/m,
+        (match, open, body, close) => {
+          return open + body + '\n' + fmtFix + '\n' + close;
+        }
+      );
 
       fs.writeFileSync(podfilePath, content);
       return config;
