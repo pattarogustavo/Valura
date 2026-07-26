@@ -17,7 +17,11 @@ module.exports = function withFmtFix(config) {
         return config;
       }
 
-      const fmtFix = `
+      // Insere directamente após a abertura do post_install
+      // Não precisa de encontrar o 'end' — é sempre dentro do bloco
+      content = content.replace(
+        'post_install do |installer|',
+        `post_install do |installer|
   # Fix fmt for Xcode 26
   installer.pods_project.targets.each do |target|
     if target.name == 'fmt'
@@ -27,14 +31,7 @@ module.exports = function withFmtFix(config) {
         cfg.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEVAL=0'
       end
     end
-  end`;
-
-      // Encontra o post_install e insere o código dentro dele
-      content = content.replace(
-        /(post_install do \|installer\|)([\s\S]*?)(^end)/m,
-        (match, open, body, close) => {
-          return open + body + '\n' + fmtFix + '\n' + close;
-        }
+  end`
       );
 
       fs.writeFileSync(podfilePath, content);
