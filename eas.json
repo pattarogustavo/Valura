@@ -13,10 +13,10 @@
       "ios": { "simulator": false }
     },
     "production": {
-  "node": "22.0.0",
-  "ios": { "image": "macos-tahoe-26.4-xcode-26.4" },
-  "android": { "buildType": "app-bundle" }
-}
+      "node": "22.0.0",
+      "ios": { "image": "macos-tahoe-26.4-xcode-26.4" },
+      "android": { "buildType": "app-bundle" }
+    }
   },
   "submit": {
     "production": {
