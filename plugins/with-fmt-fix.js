@@ -13,28 +13,31 @@ module.exports = function withFmtFix(config) {
 
       let content = fs.readFileSync(podfilePath, 'utf8');
 
-      if (content.includes('FMT_USE_CONSTEVAL')) {
+      if (content.includes('# withFmtFix')) {
         return config;
       }
 
-      const fmtFix = `
-  # Fix fmt consteval for Xcode 26
-  installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |cfg|
-      flags = cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] || '$(inherited)'
-      unless flags.include?('FMT_USE_CONSTEVAL')
-        cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] = flags.to_s + ' -DFMT_USE_CONSTEVAL=0'
+      const MARKER = 'post_install do |installer|';
+      const idx = content.indexOf(MARKER);
+      if (idx === -1) return config;
+
+      const fix = `
+  # withFmtFix - Patch fmt headers for Xcode 26
+  fmt_pod_dir = installer.sandbox.pod_dir('fmt')
+  if fmt_pod_dir.exist?
+    Dir.glob(File.join(fmt_pod_dir.to_s, '**', '*.h')).each do |f|
+      c = File.read(f)
+      if c.include?('FMT_USE_CONSTEVAL')
+        c2 = c.gsub(/^(\\s*#\\s*define\\s+FMT_USE_CONSTEVAL)\\s+1/, '\\\\1 0')
+        File.write(f, c2) if c2 != c
       end
-      cfg.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
     end
   end
 `;
 
-      // Insere imediatamente após a linha de abertura do post_install
-      content = content.replace(
-        /(post_install do \|installer\|)/,
-        '$1\n' + fmtFix
-      );
+      content = content.slice(0, idx + MARKER.length) +
+                fix +
+                content.slice(idx + MARKER.length);
 
       fs.writeFileSync(podfilePath, content);
       return config;
