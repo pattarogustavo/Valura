@@ -17,21 +17,23 @@ module.exports = function withFmtFix(config) {
         return config;
       }
 
-      // Insere directamente após a abertura do post_install
-      // Não precisa de encontrar o 'end' — é sempre dentro do bloco
-      content = content.replace(
-        'post_install do |installer|',
-        `post_install do |installer|
-  # Fix fmt for Xcode 26
+      const fmtFix = `
+  # Fix fmt consteval for Xcode 26
   installer.pods_project.targets.each do |target|
-    if target.name == 'fmt'
-      target.build_configurations.each do |cfg|
-        cfg.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
-        cfg.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
-        cfg.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEVAL=0'
+    target.build_configurations.each do |cfg|
+      flags = cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] || '$(inherited)'
+      unless flags.include?('FMT_USE_CONSTEVAL')
+        cfg.build_settings['OTHER_CPLUSPLUSFLAGS'] = flags.to_s + ' -DFMT_USE_CONSTEVAL=0'
       end
+      cfg.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
     end
-  end`
+  end
+`;
+
+      // Insere imediatamente após a linha de abertura do post_install
+      content = content.replace(
+        /(post_install do \|installer\|)/,
+        '$1\n' + fmtFix
       );
 
       fs.writeFileSync(podfilePath, content);
