@@ -2,7 +2,9 @@
   "name": "valura",
   "version": "1.0.0",
   "main": "expo-router/entry",
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "start": "expo start",
     "ios": "expo run:ios",
@@ -32,16 +34,6 @@
     "stream-http": "^3.2.0",
     "https-browserify": "^1.0.0",
     "os-browserify": "^0.3.0",
-    "url": "^0.11.0",
-    "util": "^0.12.5",
-    "events": "^3.3.0"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.25.0",
-    "typescript": "~5.8.3",
-    "@types/react": "~19.0.10"
-  }
-}    "os-browserify": "^0.3.0",
     "url": "^0.11.0",
     "util": "^0.12.5",
     "events": "^3.3.0"
