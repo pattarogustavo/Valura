@@ -1,6 +1,20 @@
 const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
 
 const config = getDefaultConfig(__dirname);
+
+const WS_SHIM = path.resolve(__dirname, 'shims', 'ws.js');
+
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (
+    moduleName === 'ws' ||
+    moduleName.startsWith('ws/lib/') ||
+    moduleName.startsWith('ws/lib')
+  ) {
+    return { filePath: WS_SHIM, type: 'sourceFile' };
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
 
 config.resolver.extraNodeModules = {
   stream:  require.resolve('stream-browserify'),
