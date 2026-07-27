@@ -42,11 +42,10 @@
       [
         "@sentry/react-native/expo",
         {
-          "organization": "GH-STUDIO",
-          "project": "valura"
+          "organization": "gh-studio",
+          "project": "react-native"
         }
-      ],
-      "@sentry/react-native"
+      ]
     ],
     "extra": {
       "eas": {
