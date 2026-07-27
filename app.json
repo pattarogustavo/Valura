@@ -3,7 +3,6 @@
     "name": "Valura",
     "slug": "valura",
     "version": "1.0.0",
-    "owner": "gustavo.pattaro",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "valura",
@@ -43,7 +42,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "f79fcae6-3415-4390-abca-f02a0c9a493b"
+        "projectId": "aa162697-4275-422d-87a0-9bd4228a903b"
       }
     }
   }
