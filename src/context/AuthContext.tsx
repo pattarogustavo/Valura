@@ -8,7 +8,6 @@ import type { AuthUser, AuthState } from '../types';
 interface AuthContextValue extends AuthState {
   signInWithEmail:    (email: string, password: string) => Promise<{ error?: string }>;
   signUpWithEmail:    (email: string, password: string, name?: string) => Promise<{ error?: string }>;
-  signInWithGoogle:   () => Promise<{ error?: string }>;
   signInWithApple:    () => Promise<{ error?: string }>;
   signOut:            () => Promise<void>;
   refreshUser:        () => Promise<void>;
@@ -89,14 +88,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: result.error };
   }, []);
 
-  const signInWithGoogle = useCallback(async () => {
-    setState(s => ({ ...s, loading: true }));
-    const result = await AuthService.signInWithGoogle();
-    if (result.ok) { setUser(result.data); return {}; }
-    setState(s => ({ ...s, loading: false }));
-    return { error: result.error };
-  }, []);
-
   const signInWithApple = useCallback(async () => {
     setState(s => ({ ...s, loading: true }));
     const result = await AuthService.signInWithApple();
@@ -121,7 +112,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ...state,
       signInWithEmail,
       signUpWithEmail,
-      signInWithGoogle,
       signInWithApple,
       signOut,
       refreshUser,
