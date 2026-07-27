@@ -45,7 +45,8 @@
           "organization": "GH-STUDIO",
           "project": "valura"
         }
-      ]
+      ],
+      "@sentry/react-native"
     ],
     "extra": {
       "eas": {
