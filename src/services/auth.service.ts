@@ -1,9 +1,6 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../lib/supabase';
 import type { AuthUser, Result, AuthError, UpdateProfileInput } from '../types';
-
-WebBrowser.maybeCompleteAuthSession();
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -106,21 +103,30 @@ export async function signInWithApple(): Promise<Result<AuthUser>> {
 
     const { identityToken } = credential;
     if (!identityToken) {
-      return { ok: false, error: 'No identity token', code: 'oauth_cancelled' };
+      return { ok: false, error: 'No identity token returned from Apple', code: 'oauth_cancelled' };
     }
 
     const { data, error } = await supabase.auth.signInWithIdToken({
       provider: 'apple',
       token: identityToken,
     });
-
     if (error) return { ok: false, error: error.message, code: mapError(error.message) };
+
+    // Guarda o nome completo (só disponível no primeiro login)
+    const fullName = [
+      credential.fullName?.givenName,
+      credential.fullName?.familyName,
+    ].filter(Boolean).join(' ');
+
+    if (fullName && data.user) {
+      await supabase.from('profiles')
+        .update({ display_name: fullName })
+        .eq('id', data.user.id);
+    }
 
     const user = await buildAuthUser();
     return { ok: true, data: user! };
-
   } catch (e: any) {
-    // ERR_REQUEST_CANCELED = utilizador cancelou — não é crash
     if (e.code === 'ERR_REQUEST_CANCELED') {
       return { ok: false, error: 'Cancelled', code: 'oauth_cancelled' };
     }
@@ -172,15 +178,10 @@ export async function updateEmail(newEmail: string): Promise<Result<void>> {
 }
 
 // ─── ACCOUNT DELETION ─────────────────────────────────────────────────────────
-// All data cascades via FK ON DELETE CASCADE — profiles → all tables
 
 export async function deleteAccount(userId: string): Promise<Result<void>> {
   try {
-    // 1. Sign out first to invalidate the session
     await supabase.auth.signOut();
-
-    // 2. Call a server-side Edge Function (avoids needing service_role in client)
-    //    The function deletes the auth.users row which cascades to profiles
     const { error } = await supabase.functions.invoke('delete-account', {
       body: { user_id: userId },
     });
