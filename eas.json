@@ -3,7 +3,6 @@
     "version": ">= 16.0.0",
     "appVersionSource": "local"
   },
-  "account": "gustavo.pattaro",
   "build": {
     "development": {
       "developmentClient": true,
