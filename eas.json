@@ -3,6 +3,7 @@
     "version": ">= 16.0.0",
     "appVersionSource": "local"
   },
+  "account": "gustavo.pattaro",
   "build": {
     "development": {
       "developmentClient": true,
@@ -14,14 +15,9 @@
     },
     "production": {
       "node": "22.0.0",
-      "ios": {
-        "image": "macos-tahoe-26.4-xcode-26.4",
-        "autoIncrement": true
-      },
-      "android": {
-        "buildType": "app-bundle",
-        "autoIncrement": true
-      }
+      "autoIncrement": true,
+      "ios": { "image": "macos-tahoe-26.4-xcode-26.4" },
+      "android": { "buildType": "app-bundle" }
     }
   },
   "submit": {
