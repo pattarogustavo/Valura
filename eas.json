@@ -14,7 +14,6 @@
     },
     "production": {
       "node": "22.0.0",
-      "autoIncrement": true,
       "ios": { "image": "macos-tahoe-26.4-xcode-26.4" },
       "android": { "buildType": "app-bundle" }
     }
