@@ -1,5 +1,4 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../lib/supabase';
 import type { AuthUser, Result, AuthError, UpdateProfileInput } from '../types';
@@ -94,35 +93,6 @@ export async function updatePassword(newPassword: string): Promise<Result<void>>
   }
 }
 
-// ─── GOOGLE OAUTH ─────────────────────────────────────────────────────────────
-// Configure EXPO_PUBLIC_GOOGLE_CLIENT_ID (Web Client ID from Google Cloud Console)
-
-export async function signInWithGoogle(): Promise<Result<AuthUser>> {
-  try {
-    const clientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-    if (!clientId) throw new Error('EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID not set');
-
-    // This uses expo-auth-session under the hood
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo:   'valura://auth/callback',
-        queryParams: { access_type: 'offline', prompt: 'consent' },
-      },
-    });
-    if (error) return { ok: false, error: error.message, code: 'oauth_cancelled' };
-
-    // Open browser for OAuth — the session will be picked up by the deep link listener
-    if (data.url) await WebBrowser.openBrowserAsync(data.url);
-
-    const user = await buildAuthUser();
-    if (!user) return { ok: false, error: 'OAuth did not complete', code: 'oauth_cancelled' };
-    return { ok: true, data: user };
-  } catch (e: any) {
-    return { ok: false, error: e.message, code: 'oauth_cancelled' };
-  }
-}
-
 // ─── APPLE SIGN-IN ────────────────────────────────────────────────────────────
 
 export async function signInWithApple(): Promise<Result<AuthUser>> {
@@ -136,34 +106,25 @@ export async function signInWithApple(): Promise<Result<AuthUser>> {
 
     const { identityToken } = credential;
     if (!identityToken) {
-      return { ok: false, error: 'No identity token returned from Apple', code: 'oauth_cancelled' };
+      return { ok: false, error: 'No identity token', code: 'oauth_cancelled' };
     }
 
     const { data, error } = await supabase.auth.signInWithIdToken({
       provider: 'apple',
       token: identityToken,
     });
+
     if (error) return { ok: false, error: error.message, code: mapError(error.message) };
-
-    // Update display name if Apple provided it (only available on first login)
-    const fullName = [
-      credential.fullName?.givenName,
-      credential.fullName?.familyName,
-    ].filter(Boolean).join(' ');
-
-    if (fullName && data.user) {
-      await supabase.from('profiles')
-        .update({ display_name: fullName })
-        .eq('id', data.user.id);
-    }
 
     const user = await buildAuthUser();
     return { ok: true, data: user! };
+
   } catch (e: any) {
+    // ERR_REQUEST_CANCELED = utilizador cancelou — não é crash
     if (e.code === 'ERR_REQUEST_CANCELED') {
       return { ok: false, error: 'Cancelled', code: 'oauth_cancelled' };
     }
-    return { ok: false, error: e.message, code: 'unknown' };
+    return { ok: false, error: e.message ?? 'Unknown error', code: 'unknown' };
   }
 }
 
