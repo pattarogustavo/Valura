@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform,
-  ScrollView, ActivityIndicator, Alert,
+  ScrollView, ActivityIndicator,
 } from 'react-native';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 
@@ -20,7 +21,7 @@ const T = {
 };
 
 export default function LoginScreen() {
-  const { signInWithEmail, signInWithGoogle, signInWithApple, loading } = useAuth();
+  const { signInWithEmail, signInWithApple, loading } = useAuth();
   const router = useRouter();
 
   const [email,    setEmail]    = useState('');
@@ -33,13 +34,6 @@ export default function LoginScreen() {
     setError('');
     const res = await signInWithEmail(email.trim(), password);
     if (res.error) setError(res.error);
-    // If ok, AuthContext fires onAuthStateChange which redirects to app
-  };
-
-  const handleGoogle = async () => {
-    setError('');
-    const res = await signInWithGoogle();
-    if (res.error && res.error !== 'Cancelled') setError(res.error);
   };
 
   const handleApple = async () => {
@@ -57,7 +51,7 @@ export default function LoginScreen() {
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Logo / Header */}
+        {/* Logo */}
         <View style={styles.header}>
           <View style={styles.logoCircle}>
             <Text style={styles.logoText}>V</Text>
@@ -73,7 +67,7 @@ export default function LoginScreen() {
           </View>
         )}
 
-        {/* Email input */}
+        {/* Email */}
         <View style={styles.field}>
           <Text style={styles.label}>E-mail</Text>
           <TextInput
@@ -88,7 +82,7 @@ export default function LoginScreen() {
           />
         </View>
 
-        {/* Password input */}
+        {/* Password */}
         <View style={styles.field}>
           <View style={styles.labelRow}>
             <Text style={styles.label}>Password</Text>
@@ -132,22 +126,14 @@ export default function LoginScreen() {
           <View style={styles.dividerLine} />
         </View>
 
-        {/* OAuth buttons */}
-        <TouchableOpacity style={styles.oauthBtn} onPress={handleGoogle} activeOpacity={0.8}>
-          <Text style={styles.oauthIcon}>🌐</Text>
-          <Text style={styles.oauthText}>Continuar com Google</Text>
-        </TouchableOpacity>
-
-        {Platform.OS === 'ios' && (
-          <TouchableOpacity
-            style={[styles.oauthBtn, styles.appleBtn]}
-            onPress={handleApple}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.oauthIcon, { color: T.white }]}></Text>
-            <Text style={[styles.oauthText, { color: T.white }]}>Continuar com Apple</Text>
-          </TouchableOpacity>
-        )}
+        {/* Apple Sign-In — botão nativo obrigatório pela Apple */}
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+          cornerRadius={12}
+          style={styles.appleBtn}
+          onPress={handleApple}
+        />
 
         {/* Register link */}
         <View style={styles.registerRow}>
@@ -162,34 +148,31 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  root:         { flex: 1, backgroundColor: T.white },
-  scroll:       { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40 },
-  header:       { alignItems: 'center', paddingTop: 60, paddingBottom: 40 },
-  logoCircle:   { width: 72, height: 72, borderRadius: 36, backgroundColor: T.brand, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  logoText:     { fontSize: 32, fontWeight: '800', color: T.white },
-  appName:      { fontSize: 30, fontWeight: '800', color: T.text, letterSpacing: -0.5, marginBottom: 6 },
-  tagline:      { fontSize: 14, color: T.textSec, fontWeight: '400' },
-  errorBox:     { backgroundColor: '#FDECEA', borderRadius: 10, padding: 12, marginBottom: 16 },
-  errorText:    { color: T.red, fontSize: 13, fontWeight: '500' },
-  field:        { marginBottom: 16 },
-  label:        { fontSize: 13, fontWeight: '500', color: T.textSec, marginBottom: 6 },
-  labelRow:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  forgotLink:   { fontSize: 13, color: T.brand, fontWeight: '500' },
-  input:        { borderWidth: 1.5, borderColor: T.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: T.text, backgroundColor: T.white },
-  passwordWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: T.border, borderRadius: 10, overflow: 'hidden', backgroundColor: T.white },
-  eyeBtn:       { paddingHorizontal: 12, paddingVertical: 12 },
-  eyeText:      { fontSize: 16 },
-  primaryBtn:   { backgroundColor: T.brand, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8, shadowColor: T.brand, shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
-  primaryBtnText:{ fontSize: 16, fontWeight: '700', color: T.white, letterSpacing: -0.2 },
-  btnDisabled:  { opacity: 0.6 },
-  divider:      { flexDirection: 'row', alignItems: 'center', marginVertical: 24, gap: 10 },
-  dividerLine:  { flex: 1, height: 1, backgroundColor: T.border },
-  dividerText:  { fontSize: 12, color: T.textTer, fontWeight: '400' },
-  oauthBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderWidth: 1.5, borderColor: T.border, borderRadius: 12, paddingVertical: 13, marginBottom: 12, backgroundColor: T.white },
-  appleBtn:     { backgroundColor: T.text, borderColor: T.text },
-  oauthIcon:    { fontSize: 18 },
-  oauthText:    { fontSize: 15, fontWeight: '500', color: T.text },
-  registerRow:  { flexDirection: 'row', justifyContent: 'center', marginTop: 16 },
-  registerText: { fontSize: 14, color: T.textSec },
-  registerLink: { fontSize: 14, color: T.brand, fontWeight: '600' },
+  root:           { flex: 1, backgroundColor: T.white },
+  scroll:         { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40 },
+  header:         { alignItems: 'center', paddingTop: 60, paddingBottom: 40 },
+  logoCircle:     { width: 72, height: 72, borderRadius: 36, backgroundColor: T.brand, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  logoText:       { fontSize: 32, fontWeight: '800', color: T.white },
+  appName:        { fontSize: 30, fontWeight: '800', color: T.text, letterSpacing: -0.5, marginBottom: 6 },
+  tagline:        { fontSize: 14, color: T.textSec, fontWeight: '400' },
+  errorBox:       { backgroundColor: '#FDECEA', borderRadius: 10, padding: 12, marginBottom: 16 },
+  errorText:      { color: T.red, fontSize: 13, fontWeight: '500' },
+  field:          { marginBottom: 16 },
+  label:          { fontSize: 13, fontWeight: '500', color: T.textSec, marginBottom: 6 },
+  labelRow:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  forgotLink:     { fontSize: 13, color: T.brand, fontWeight: '500' },
+  input:          { borderWidth: 1.5, borderColor: T.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: T.text, backgroundColor: T.white },
+  passwordWrap:   { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: T.border, borderRadius: 10, overflow: 'hidden', backgroundColor: T.white },
+  eyeBtn:         { paddingHorizontal: 12, paddingVertical: 12 },
+  eyeText:        { fontSize: 16 },
+  primaryBtn:     { backgroundColor: T.brand, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8, shadowColor: T.brand, shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  primaryBtnText: { fontSize: 16, fontWeight: '700', color: T.white, letterSpacing: -0.2 },
+  btnDisabled:    { opacity: 0.6 },
+  divider:        { flexDirection: 'row', alignItems: 'center', marginVertical: 24, gap: 10 },
+  dividerLine:    { flex: 1, height: 1, backgroundColor: T.border },
+  dividerText:    { fontSize: 12, color: T.textTer, fontWeight: '400' },
+  appleBtn:       { width: '100%', height: 50, marginBottom: 12 },
+  registerRow:    { flexDirection: 'row', justifyContent: 'center', marginTop: 16 },
+  registerText:   { fontSize: 14, color: T.textSec },
+  registerLink:   { fontSize: 14, color: T.brand, fontWeight: '600' },
 });
