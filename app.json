@@ -18,7 +18,9 @@
       "buildNumber": "8",
       "infoPlist": {
         "NSFaceIDUsageDescription": "Use Face ID to protect your financial data",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true
       }
     },
     "android": {
@@ -31,6 +33,7 @@
     },
     "plugins": [
       "./plugins/with-fmt-fix",
+      "./plugins/with-crash-logger",
       "expo-router",
       "expo-apple-authentication",
       [
