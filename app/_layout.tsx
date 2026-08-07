@@ -1,16 +1,7 @@
 import React, { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
-import * as Sentry from '@sentry/react-native';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
-
-Sentry.init({
-  dsn: 'https://619ebd00bed14af47f47f4041e525574@o4511809515618304.ingest.de.sentry.io/4511809521844304',
-  tracesSampleRate: 1.0,
-  enableNativeCrashHandling: true,
-  enableAutoSessionTracking: true,
-  debug: false,
-});
 
 // ─── AUTH GATE ────────────────────────────────────────────────────────────────
 function RootNavigator() {
@@ -45,12 +36,10 @@ function RootNavigator() {
 }
 
 // ─── ROOT LAYOUT ──────────────────────────────────────────────────────────────
-function RootLayout() {
+export default function RootLayout() {
   return (
     <AuthProvider>
       <RootNavigator />
     </AuthProvider>
   );
 }
-
-export default Sentry.wrap(RootLayout);
