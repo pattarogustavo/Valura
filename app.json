@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.valura.app",
-      "buildNumber": "5",
+      "buildNumber": "8",
       "infoPlist": {
         "NSFaceIDUsageDescription": "Use Face ID to protect your financial data",
         "ITSAppUsesNonExemptEncryption": false
@@ -37,13 +37,6 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow Valura to access your photos to update your profile picture."
-        }
-      ],
-      [
-        "@sentry/react-native/expo",
-        {
-          "organization": "gh-studio",
-          "project": "react-native"
         }
       ]
     ],
