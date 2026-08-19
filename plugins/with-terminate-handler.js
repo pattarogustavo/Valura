@@ -24,8 +24,15 @@ function withTerminateHandler(config) {
     const projectName = config.modRequest.projectName;
     const groupKey = project.findPBXGroupKey({ name: projectName });
 
+    // IMPORTANT: the path must include the "<ProjectName>/" prefix (matching
+    // how AppDelegate.swift itself is referenced, e.g. path = "Valura/AppDelegate.swift"),
+    // because this PBXFileReference resolves relative to the ios/ project root,
+    // not relative to the group it's nested under. Passing just the filename
+    // here causes Xcode Cloud/EAS Build to look for the file directly in ios/
+    // instead of ios/<ProjectName>/, where we actually copied it, producing:
+    // "Build input file cannot be found: '.../ios/ValuraCrashLogger.mm'"
     project.addSourceFile(
-      'ValuraCrashLogger.mm',
+      `${projectName}/ValuraCrashLogger.mm`,
       {
         target: project.getFirstTarget().uuid,
         lastKnownFileType: 'sourcecode.cpp.objcpp',
