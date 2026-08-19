@@ -33,6 +33,7 @@
     },
     "plugins": [
       "./plugins/with-fmt-fix",
+      "./plugins/with-terminate-handler",
       "./plugins/with-crash-logger",
       "expo-router",
       "expo-apple-authentication",
