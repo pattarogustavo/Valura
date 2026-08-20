@@ -26,6 +26,14 @@ const MONTHS_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julh
 
 export default function SummaryScreen() {
   const { user }       = useAuth();
+  
+  if (!user) {
+    return (
+      <View style={s.center}>
+        <ActivityIndicator size="large" color="#1756F5" />
+      </View>
+    );
+  }
   const userId         = user!.id;
   const monthYear      = `${CY}-${String(CM + 1).padStart(2, '0')}`;
 
