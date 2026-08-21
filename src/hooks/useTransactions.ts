@@ -13,7 +13,7 @@ interface UseTransactionsReturn {
   transactions: Transaction[];
   loading:      boolean;
   error:        string | null;
-  addTransaction:    (input: CreateTransactionInput) => Promise<void>;
+  addTransaction:    (input: CreateTransactionInput) => Promise<{ ok: boolean; error?: string }>;
   updateTransaction: (id: string, input: Partial<CreateTransactionInput>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   refresh:           () => Promise<void>;
@@ -86,10 +86,12 @@ export function useTransactions(opts: UseTransactionsOptions): UseTransactionsRe
       setTransactions(prev =>
         prev.map(t => t.id === temp.id ? result.data : t)
       );
+      return { ok: true };
     } else {
       // Roll back
       setTransactions(prev => prev.filter(t => t.id !== temp.id));
       setError(result.error);
+      return { ok: false, error: result.error };
     }
   }, [userId, year, month]);
 
