@@ -1,11 +1,14 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, StyleSheet, TextInput, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../../../src/context/AuthContext';
 import * as TxRepo from '../../../src/repositories/transaction.repository';
-import { theme, fCHF } from '../../../src/theme';
+import { theme, fCHF, MONTHS_SHORT } from '../../../src/theme';
+import { LineChart, LineChartPoint } from '../../../src/components/LineChart';
 
 const INVESTMENT_CATEGORY_SLUG = 'investment';
+const MAX_MONTHLY_YEARS = 5; // cap detailed monthly view to keep the chart readable
 
 interface YearProjection {
   year: number;
@@ -13,7 +16,7 @@ interface YearProjection {
   value: number;
 }
 
-function project(
+function projectYearly(
   startingValue: number,
   monthlyContribution: number,
   annualRatePct: number,
@@ -34,25 +37,47 @@ function project(
   return results;
 }
 
+function projectMonthly(
+  startingValue: number,
+  monthlyContribution: number,
+  annualRatePct: number,
+  months: number
+): { label: string; value: number }[] {
+  const monthlyRate = annualRatePct / 100 / 12;
+  let value = startingValue;
+  const results: { label: string; value: number }[] = [];
+  const base = new Date();
+
+  for (let i = 1; i <= months; i++) {
+    value = value * (1 + monthlyRate) + monthlyContribution;
+    const d = new Date(base.getFullYear(), base.getMonth() + i, 1);
+    results.push({ label: `${MONTHS_SHORT[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`, value });
+  }
+  return results;
+}
+
 /** Sum of all-time expenses logged under the "Investimento" category. */
 function useInvestedSoFar(userId: string) {
   const [invested, setInvested] = useState<number | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-    TxRepo.getAllTransactions(userId).then(res => {
-      if (!mounted) return;
-      if (res.ok) {
-        const total = res.data
-          .filter(t => t.type === 'expense' && t.cat_id === INVESTMENT_CATEGORY_SLUG)
-          .reduce((s, t) => s + t.amount, 0);
-        setInvested(total);
-      } else {
-        setInvested(0);
-      }
-    });
-    return () => { mounted = false; };
+  const load = useCallback(async () => {
+    if (!userId) return;
+    const res = await TxRepo.getAllTransactions(userId);
+    if (res.ok) {
+      const total = res.data
+        .filter(t => t.type === 'expense' && t.cat_id === INVESTMENT_CATEGORY_SLUG)
+        .reduce((s, t) => s + t.amount, 0);
+      setInvested(total);
+    } else {
+      setInvested(0);
+    }
   }, [userId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Refresh every time this tab regains focus, so a newly-added
+  // investment expense shows up here without needing to restart the app.
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   return invested;
 }
@@ -61,25 +86,41 @@ export default function ProjecoesScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const profile = user?.profile;
-  const investedSoFar = useInvestedSoFar(user!.id);
+  const investedSoFar = useInvestedSoFar(user?.id ?? '');
 
-  const [startingValue, setStartingValue] = useState(String(profile?.net_worth ?? 0));
+  const [otherAssets, setOtherAssets] = useState(String(profile?.net_worth ?? 0));
   const [monthlyContribution, setMonthlyContribution] = useState(
     String(profile?.monthly_income ? Math.round(profile.monthly_income * 0.2) : 500)
   );
   const [annualRate, setAnnualRate] = useState('5');
   const [years, setYears] = useState('10');
+  const [view, setView] = useState<'ano' | 'mes'>('ano');
 
-  const results = useMemo(() => {
-    const sv = parseFloat(startingValue.replace(',', '.')) || 0;
-    const mc = parseFloat(monthlyContribution.replace(',', '.')) || 0;
-    const rate = parseFloat(annualRate.replace(',', '.')) || 0;
-    const yrs = Math.max(1, Math.min(50, parseInt(years, 10) || 1));
-    return project(sv, mc, rate, yrs);
-  }, [startingValue, monthlyContribution, annualRate, years]);
+  const effectiveStartingValue = useMemo(() => {
+    const other = parseFloat(otherAssets.replace(',', '.')) || 0;
+    return other + (investedSoFar ?? 0);
+  }, [otherAssets, investedSoFar]);
 
-  const final = results[results.length - 1];
-  const maxValue = final?.value ?? 1;
+  const yearsNum = Math.max(1, Math.min(50, parseInt(years, 10) || 1));
+  const mc = parseFloat(monthlyContribution.replace(',', '.')) || 0;
+  const rate = parseFloat(annualRate.replace(',', '.')) || 0;
+
+  const yearlyResults = useMemo(
+    () => projectYearly(effectiveStartingValue, mc, rate, yearsNum),
+    [effectiveStartingValue, mc, rate, yearsNum]
+  );
+
+  const monthlyMonthsToShow = Math.min(yearsNum, MAX_MONTHLY_YEARS) * 12;
+  const monthlyResults = useMemo(
+    () => projectMonthly(effectiveStartingValue, mc, rate, monthlyMonthsToShow),
+    [effectiveStartingValue, mc, rate, monthlyMonthsToShow]
+  );
+
+  const final = yearlyResults[yearlyResults.length - 1];
+
+  const chartData: LineChartPoint[] = view === 'ano'
+    ? yearlyResults.map(r => ({ label: `Ano ${r.year}`, value: r.value }))
+    : monthlyResults.map(r => ({ label: r.label, value: r.value }));
 
   return (
     <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: 120 }}>
@@ -110,53 +151,56 @@ export default function ProjecoesScreen() {
           <>
             <Text style={s.investedValue}>{fCHF(investedSoFar, 0)}</Text>
             <Text style={s.investedHint}>
-              Soma de todas as transações na categoria Investimento
+              Soma de todas as transações na categoria Investimento — já incluído no patrimônio inicial da simulação abaixo.
             </Text>
           </>
         )}
       </View>
 
       <View style={s.formCard}>
-        <Field label="Patrimônio inicial (CHF)" value={startingValue} onChangeText={setStartingValue} />
+        <Field label="Outros ativos (CHF)" value={otherAssets} onChangeText={setOtherAssets} />
+        <View style={s.totalRow}>
+          <Text style={s.totalLabel}>Patrimônio inicial total</Text>
+          <Text style={s.totalValue}>{fCHF(effectiveStartingValue, 0)}</Text>
+        </View>
         <Field label="Aporte mensal (CHF)" value={monthlyContribution} onChangeText={setMonthlyContribution} />
         <Field label="Rentabilidade anual (%)" value={annualRate} onChangeText={setAnnualRate} />
         <Field label="Período (anos)" value={years} onChangeText={setYears} />
       </View>
 
-      <Text style={s.sectionTitle}>Evolução ano a ano</Text>
+      <View style={s.sectionHeaderRow}>
+        <Text style={s.sectionTitle}>Evolução</Text>
+        <View style={s.toggle}>
+          <TouchableOpacity
+            style={[s.toggleBtn, view === 'mes' && s.toggleBtnActive]}
+            onPress={() => setView('mes')}
+          >
+            <Text style={[s.toggleText, view === 'mes' && s.toggleTextActive]}>Mês</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.toggleBtn, view === 'ano' && s.toggleBtnActive]}
+            onPress={() => setView('ano')}
+          >
+            <Text style={[s.toggleText, view === 'ano' && s.toggleTextActive]}>Ano</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {view === 'mes' && yearsNum > MAX_MONTHLY_YEARS && (
+        <Text style={s.monthlyNote}>
+          Mostrando os primeiros {MAX_MONTHLY_YEARS} anos em detalhe mensal.
+        </Text>
+      )}
 
       <View style={s.chartBox}>
-        {results.map(r => (
-          <View key={r.year} style={s.barRow}>
-            <Text style={s.barYear}>Ano {r.year}</Text>
-            <View style={s.barTrack}>
-              <View
-                style={[
-                  s.barContributed,
-                  { width: `${Math.max(2, (r.contributed / maxValue) * 100)}%` },
-                ]}
-              />
-              <View
-                style={[
-                  s.barTotal,
-                  { width: `${Math.max(2, (r.value / maxValue) * 100)}%` },
-                ]}
-              />
-            </View>
-            <Text style={s.barValue}>{fCHF(r.value, 0)}</Text>
-          </View>
-        ))}
-
-        <View style={s.legendRow}>
-          <View style={s.legendItem}>
-            <View style={[s.legendDot, { backgroundColor: theme.border }]} />
-            <Text style={s.legendText}>Aportado</Text>
-          </View>
-          <View style={s.legendItem}>
-            <View style={[s.legendDot, { backgroundColor: theme.brand }]} />
-            <Text style={s.legendText}>Total (com rendimento)</Text>
-          </View>
-        </View>
+        <LineChart
+          data={chartData}
+          height={180}
+          color={theme.brand}
+          formatValue={(v) => fCHF(v, 0)}
+          scrollable={view === 'mes'}
+          minPointSpacing={40}
+        />
       </View>
     </ScrollView>
   );
@@ -208,26 +252,25 @@ const s = StyleSheet.create({
     width: 110, borderWidth: 1, borderColor: theme.border, borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 8, fontSize: 14, textAlign: 'right', color: theme.text,
   },
-  sectionTitle: {
-    fontSize: 14, fontWeight: '700', color: theme.text,
-    marginHorizontal: 16, marginTop: 18, marginBottom: 10, letterSpacing: -0.2,
+  totalRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: '#EEF3F8', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8,
   },
+  totalLabel: { fontSize: 12, color: theme.textSec, fontWeight: '600' },
+  totalValue: { fontSize: 14, color: theme.brand, fontWeight: '800' },
+  sectionHeaderRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginHorizontal: 16, marginTop: 18, marginBottom: 4,
+  },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: theme.text, letterSpacing: -0.2 },
+  toggle: { flexDirection: 'row', backgroundColor: '#EEF3F8', borderRadius: 8, padding: 2 },
+  toggleBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 6 },
+  toggleBtnActive: { backgroundColor: theme.white },
+  toggleText: { fontSize: 12, fontWeight: '600', color: theme.textTer },
+  toggleTextActive: { color: theme.brand },
+  monthlyNote: { fontSize: 11, color: theme.textTer, marginHorizontal: 16, marginBottom: 8 },
   chartBox: {
     marginHorizontal: 16, backgroundColor: theme.white, borderRadius: 14,
-    borderWidth: 1, borderColor: theme.border, padding: 16, gap: 12,
+    borderWidth: 1, borderColor: theme.border, padding: 16,
   },
-  barRow: { gap: 4 },
-  barYear: { fontSize: 12, fontWeight: '600', color: theme.textSec },
-  barTrack: { height: 14, justifyContent: 'center' },
-  barContributed: {
-    position: 'absolute', height: 14, borderRadius: 4, backgroundColor: theme.border,
-  },
-  barTotal: {
-    position: 'absolute', height: 6, top: 4, borderRadius: 3, backgroundColor: theme.brand,
-  },
-  barValue: { fontSize: 12, color: theme.text, fontWeight: '700', marginTop: 2 },
-  legendRow: { flexDirection: 'row', gap: 16, marginTop: 8 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 11, color: theme.textTer },
 });

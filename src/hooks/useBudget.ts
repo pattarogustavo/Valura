@@ -11,6 +11,7 @@ interface UseBudgetReturn {
   loading:      boolean;
   error:        string | null;
   updateBudget: (input: UpsertBudgetInput) => Promise<void>;
+  refresh:      () => Promise<void>;
 }
 
 export function useBudget(
@@ -65,7 +66,7 @@ export function useBudget(
     }
   }, [userId, load]);
 
-  return { budget, loading, error, updateBudget };
+  return { budget, loading, error, updateBudget, refresh: load };
 }
 
 // ─── useCategories ────────────────────────────────────────────────────────────

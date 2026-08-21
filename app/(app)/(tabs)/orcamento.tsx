@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, ActivityIndicator, StyleSheet,
   TextInput, TouchableOpacity, Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../../../src/context/AuthContext';
 import { useTransactions } from '../../../src/hooks/useTransactions';
 import { useBudget, useCategories } from '../../../src/hooks/useBudget';
@@ -19,9 +20,17 @@ export default function OrcamentoScreen() {
   const insets = useSafeAreaInsets();
   const userId = user!.id;
 
-  const { transactions, loading: txLoading } = useTransactions({ userId, year: CY, month: CM });
-  const { budget, loading: budLoading, updateBudget } = useBudget(userId, monthYear);
-  const { categories, loading: catLoading } = useCategories(userId);
+  const { transactions, loading: txLoading, refresh: refreshTx } = useTransactions({ userId, year: CY, month: CM });
+  const { budget, loading: budLoading, updateBudget, refresh: refreshBudget } = useBudget(userId, monthYear);
+  const { categories, loading: catLoading, refresh: refreshCategories } = useCategories(userId);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshTx();
+      refreshBudget();
+      refreshCategories();
+    }, [refreshTx, refreshBudget, refreshCategories])
+  );
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftValue, setDraftValue] = useState('');

@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../../../src/context/AuthContext';
 import { useTransactions } from '../../../src/hooks/useTransactions';
 import { useBudget, useCategories } from '../../../src/hooks/useBudget';
@@ -12,15 +13,24 @@ const now = new Date();
 export default function AnaliseScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const userId = user!.id;
+  const userId = user?.id ?? '';
 
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const monthYear = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
 
-  const { transactions, loading: txLoading } = useTransactions({ userId, year: viewYear, month: viewMonth });
-  const { categories, loading: catLoading } = useCategories(userId);
-  const { budget, loading: budLoading } = useBudget(userId, monthYear);
+  const { transactions, loading: txLoading, refresh: refreshTx } = useTransactions({ userId, year: viewYear, month: viewMonth });
+  const { categories, loading: catLoading, refresh: refreshCategories } = useCategories(userId);
+  const { budget, loading: budLoading, refresh: refreshBudget } = useBudget(userId, monthYear);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
+      refreshTx();
+      refreshCategories();
+      refreshBudget();
+    }, [userId, refreshTx, refreshCategories, refreshBudget])
+  );
 
   const loading = txLoading || catLoading || budLoading;
 
@@ -50,7 +60,7 @@ export default function AnaliseScreen() {
           bg: cat?.bg ?? '#F8FAFC',
           pct: totalExpense > 0 ? Math.round((amount / totalExpense) * 100) : 0,
           goal,
-          budgetPct, // % of the budget goal used — can exceed 100
+          budgetPct,
         };
       })
       .sort((a, b) => b.amount - a.amount);
@@ -58,7 +68,7 @@ export default function AnaliseScreen() {
     return { byCategory, totalExpense, totalIncome };
   }, [transactions, categories, budget]);
 
-  if (loading) {
+  if (!user || loading) {
     return (
       <View style={s.center}>
         <ActivityIndicator size="large" color={theme.brand} />

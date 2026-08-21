@@ -2,9 +2,10 @@
  * app/(app)/(tabs)/index.tsx  →  Summary / Dashboard tab
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import { useAuth }         from '../../../src/context/AuthContext';
 import { useTransactions } from '../../../src/hooks/useTransactions';
 import { useBudget }       from '../../../src/hooks/useBudget';
@@ -22,19 +23,24 @@ export default function SummaryScreen() {
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
 
-  if (!user) {
-    return (
-      <View style={s.center}>
-        <ActivityIndicator size="large" color={theme.brand} />
-      </View>
-    );
-  }
-  const userId = user.id;
+  const userId = user?.id ?? '';
   const monthYear = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
 
-  const { transactions, loading: txLoading } = useTransactions({ userId, year: viewYear, month: viewMonth });
-  const { budget, loading: budLoading } = useBudget(userId, monthYear);
-  const { categories, loading: catLoading } = useCategories(userId);
+  const { transactions, loading: txLoading, refresh: refreshTx } = useTransactions({ userId, year: viewYear, month: viewMonth });
+  const { budget, loading: budLoading, refresh: refreshBudget } = useBudget(userId, monthYear);
+  const { categories, loading: catLoading, refresh: refreshCategories } = useCategories(userId);
+
+  // Re-fetch every time this tab regains focus (e.g. after adding a
+  // transaction from the modal, or editing a budget in another tab),
+  // instead of relying only on realtime, which can lag by a moment.
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
+      refreshTx();
+      refreshBudget();
+      refreshCategories();
+    }, [userId, refreshTx, refreshBudget, refreshCategories])
+  );
 
   const loading = txLoading || budLoading || catLoading;
 
@@ -48,8 +54,6 @@ export default function SummaryScreen() {
 
   const totalBudget = Object.values(budget).reduce((s, v) => s + v, 0);
 
-  // "Limite/dia" only makes sense for the current, ongoing month.
-  // For past months, show the average daily spend instead.
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const thirdKpi = isCurrentMonth
     ? {
@@ -61,7 +65,7 @@ export default function SummaryScreen() {
         value: fCHF(totalExpense / daysInMonth, 0),
       };
 
-  if (loading) {
+  if (!user || loading) {
     return (
       <View style={s.center}>
         <ActivityIndicator size="large" color={theme.brand} />
