@@ -1,7 +1,11 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TextInput } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../../src/context/AuthContext';
+import * as TxRepo from '../../../src/repositories/transaction.repository';
 import { theme, fCHF } from '../../../src/theme';
+
+const INVESTMENT_CATEGORY_SLUG = 'investment';
 
 interface YearProjection {
   year: number;
@@ -30,9 +34,34 @@ function project(
   return results;
 }
 
+/** Sum of all-time expenses logged under the "Investimento" category. */
+function useInvestedSoFar(userId: string) {
+  const [invested, setInvested] = useState<number | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    TxRepo.getAllTransactions(userId).then(res => {
+      if (!mounted) return;
+      if (res.ok) {
+        const total = res.data
+          .filter(t => t.type === 'expense' && t.cat_id === INVESTMENT_CATEGORY_SLUG)
+          .reduce((s, t) => s + t.amount, 0);
+        setInvested(total);
+      } else {
+        setInvested(0);
+      }
+    });
+    return () => { mounted = false; };
+  }, [userId]);
+
+  return invested;
+}
+
 export default function ProjecoesScreen() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const profile = user?.profile;
+  const investedSoFar = useInvestedSoFar(user!.id);
 
   const [startingValue, setStartingValue] = useState(String(profile?.net_worth ?? 0));
   const [monthlyContribution, setMonthlyContribution] = useState(
@@ -54,16 +83,9 @@ export default function ProjecoesScreen() {
 
   return (
     <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: 120 }}>
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: insets.top + 16 }]}>
         <Text style={s.title}>Projeções</Text>
         <Text style={s.subtitle}>Simule a evolução do seu patrimônio</Text>
-      </View>
-
-      <View style={s.formCard}>
-        <Field label="Patrimônio inicial (CHF)" value={startingValue} onChangeText={setStartingValue} />
-        <Field label="Aporte mensal (CHF)" value={monthlyContribution} onChangeText={setMonthlyContribution} />
-        <Field label="Rentabilidade anual (%)" value={annualRate} onChangeText={setAnnualRate} />
-        <Field label="Período (anos)" value={years} onChangeText={setYears} />
       </View>
 
       {final && (
@@ -78,6 +100,28 @@ export default function ProjecoesScreen() {
           </View>
         </View>
       )}
+
+      {/* Invested so far — pulled from real "Investimento" category expenses */}
+      <View style={s.investedCard}>
+        <Text style={s.investedLabel}>Investido até o momento</Text>
+        {investedSoFar === null ? (
+          <ActivityIndicator size="small" color={theme.brand} style={{ marginTop: 6 }} />
+        ) : (
+          <>
+            <Text style={s.investedValue}>{fCHF(investedSoFar, 0)}</Text>
+            <Text style={s.investedHint}>
+              Soma de todas as transações na categoria Investimento
+            </Text>
+          </>
+        )}
+      </View>
+
+      <View style={s.formCard}>
+        <Field label="Patrimônio inicial (CHF)" value={startingValue} onChangeText={setStartingValue} />
+        <Field label="Aporte mensal (CHF)" value={monthlyContribution} onChangeText={setMonthlyContribution} />
+        <Field label="Rentabilidade anual (%)" value={annualRate} onChangeText={setAnnualRate} />
+        <Field label="Período (anos)" value={years} onChangeText={setYears} />
+      </View>
 
       <Text style={s.sectionTitle}>Evolução ano a ano</Text>
 
@@ -139,8 +183,23 @@ const s = StyleSheet.create({
   header: { padding: 20, paddingBottom: 12 },
   title: { fontSize: 24, fontWeight: '800', color: theme.text, letterSpacing: -0.5 },
   subtitle: { fontSize: 14, color: theme.textSec, marginTop: 2 },
+  resultCard: {
+    marginHorizontal: 16, backgroundColor: theme.brand,
+    borderRadius: 14, padding: 18,
+  },
+  resultLabel: { fontSize: 12, color: 'rgba(255,255,255,.7)', marginBottom: 4 },
+  resultValue: { fontSize: 28, fontWeight: '800', color: theme.white, letterSpacing: -0.5, marginBottom: 10 },
+  resultRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  resultSub: { fontSize: 12, color: 'rgba(255,255,255,.85)', fontWeight: '600' },
+  investedCard: {
+    marginHorizontal: 16, marginTop: 10, backgroundColor: theme.white,
+    borderRadius: 14, borderWidth: 1, borderColor: theme.border, padding: 16,
+  },
+  investedLabel: { fontSize: 11, color: theme.textTer, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  investedValue: { fontSize: 20, fontWeight: '800', color: theme.text },
+  investedHint: { fontSize: 11, color: theme.textTer, marginTop: 4 },
   formCard: {
-    marginHorizontal: 16, backgroundColor: theme.white, borderRadius: 14,
+    marginHorizontal: 16, marginTop: 12, backgroundColor: theme.white, borderRadius: 14,
     borderWidth: 1, borderColor: theme.border, padding: 16, gap: 12,
   },
   fieldRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -149,14 +208,6 @@ const s = StyleSheet.create({
     width: 110, borderWidth: 1, borderColor: theme.border, borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 8, fontSize: 14, textAlign: 'right', color: theme.text,
   },
-  resultCard: {
-    marginHorizontal: 16, marginTop: 12, backgroundColor: theme.brand,
-    borderRadius: 14, padding: 18,
-  },
-  resultLabel: { fontSize: 12, color: 'rgba(255,255,255,.7)', marginBottom: 4 },
-  resultValue: { fontSize: 28, fontWeight: '800', color: theme.white, letterSpacing: -0.5, marginBottom: 10 },
-  resultRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  resultSub: { fontSize: 12, color: 'rgba(255,255,255,.85)', fontWeight: '600' },
   sectionTitle: {
     fontSize: 14, fontWeight: '700', color: theme.text,
     marginHorizontal: 16, marginTop: 18, marginBottom: 10, letterSpacing: -0.2,

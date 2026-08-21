@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, ActivityIndicator, StyleSheet,
   TextInput, TouchableOpacity, Keyboard,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../../src/context/AuthContext';
 import { useTransactions } from '../../../src/hooks/useTransactions';
 import { useBudget, useCategories } from '../../../src/hooks/useBudget';
@@ -15,6 +16,7 @@ const monthYear = `${CY}-${String(CM + 1).padStart(2, '0')}`;
 
 export default function OrcamentoScreen() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const userId = user!.id;
 
   const { transactions, loading: txLoading } = useTransactions({ userId, year: CY, month: CM });
@@ -38,6 +40,7 @@ export default function OrcamentoScreen() {
 
   const totalBudget = Object.values(budget).reduce((s, v) => s + v, 0);
   const totalSpent = Array.from(spentByCategory.values()).reduce((s, v) => s + v, 0);
+  const totalPct = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
 
   const startEditing = (catId: string) => {
     setEditingId(catId);
@@ -61,14 +64,21 @@ export default function OrcamentoScreen() {
 
   return (
     <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: 120 }}>
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: insets.top + 16 }]}>
         <Text style={s.title}>Orçamento</Text>
         <Text style={s.subtitle}>{MONTHS_FULL[CM]} {CY}</Text>
       </View>
 
       <View style={s.summaryCard}>
-        <Text style={s.summaryLabel}>Total orçado</Text>
-        <Text style={s.summaryValue}>{fCHF(totalBudget, 0)}</Text>
+        <View style={s.summaryTopRow}>
+          <View>
+            <Text style={s.summaryLabel}>Total orçado</Text>
+            <Text style={s.summaryValue}>{fCHF(totalBudget, 0)}</Text>
+          </View>
+          {totalBudget > 0 && (
+            <Text style={[s.summaryPct, totalPct > 100 && s.summaryPctOver]}>{totalPct}%</Text>
+          )}
+        </View>
         <View style={s.barTrack}>
           <View
             style={[
@@ -96,7 +106,9 @@ export default function OrcamentoScreen() {
           {expenseCategories.map(cat => {
             const spent = spentByCategory.get(cat.slug) ?? 0;
             const goal = budget[cat.slug] ?? 0;
-            const pct = goal > 0 ? Math.min(100, Math.round((spent / goal) * 100)) : 0;
+            // Real percentage, unclamped, so overspending is visible (e.g. 120%).
+            const pct = goal > 0 ? Math.round((spent / goal) * 100) : 0;
+            const barWidthPct = Math.min(100, pct); // bar itself is capped so it doesn't overflow the track
             const over = goal > 0 && spent > goal;
 
             return (
@@ -109,6 +121,9 @@ export default function OrcamentoScreen() {
                     <Text style={s.catLabel}>{cat.label}</Text>
                     <Text style={s.catSpent}>
                       {fCHF(spent, 0)} {goal > 0 ? `de ${fCHF(goal, 0)}` : 'gasto'}
+                      {goal > 0 && (
+                        <Text style={over ? s.catPctOver : s.catPct}> · {pct}%</Text>
+                      )}
                     </Text>
                   </View>
 
@@ -135,7 +150,7 @@ export default function OrcamentoScreen() {
                     <View
                       style={[
                         s.catBarFill,
-                        { width: `${pct}%`, backgroundColor: over ? theme.danger : cat.color },
+                        { width: `${barWidthPct}%`, backgroundColor: over ? theme.danger : cat.color },
                       ]}
                     />
                   </View>
@@ -159,8 +174,11 @@ const s = StyleSheet.create({
     marginHorizontal: 16, backgroundColor: theme.white, borderRadius: 14,
     borderWidth: 1, borderColor: theme.border, padding: 16, marginBottom: 8,
   },
+  summaryTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
   summaryLabel: { fontSize: 11, color: theme.textTer, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-  summaryValue: { fontSize: 22, fontWeight: '800', color: theme.text, marginBottom: 10 },
+  summaryValue: { fontSize: 22, fontWeight: '800', color: theme.text },
+  summaryPct: { fontSize: 16, fontWeight: '800', color: theme.brand },
+  summaryPctOver: { color: theme.danger },
   summaryHint: { fontSize: 12, color: theme.textSec, marginTop: 6 },
   barTrack: { height: 8, backgroundColor: '#EEF3F8', borderRadius: 4, overflow: 'hidden' },
   barFill: { height: 8, borderRadius: 4 },
@@ -181,6 +199,8 @@ const s = StyleSheet.create({
   catIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   catLabel: { fontSize: 14, fontWeight: '700', color: theme.text },
   catSpent: { fontSize: 12, color: theme.textTer, marginTop: 2 },
+  catPct: { color: theme.textSec, fontWeight: '700' },
+  catPctOver: { color: theme.danger, fontWeight: '700' },
   editLink: { fontSize: 13, fontWeight: '700', color: theme.brand },
   input: {
     width: 80, borderWidth: 1, borderColor: theme.brand, borderRadius: 8,

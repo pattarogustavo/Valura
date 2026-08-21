@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '../lib/supabase';
 import * as BudgetRepo from '../repositories/budget.repository';
 import * as CatRepo    from '../repositories/category.repository';
 import type { BudgetMap, Category, MonthlySnapshot, UpsertBudgetInput } from '../types';
@@ -33,6 +34,26 @@ export function useBudget(
   }, [userId, monthYear]);
 
   useEffect(() => { load(); }, [load]);
+
+  // ── Real-time subscription: keeps every screen using this hook in sync
+  //    whenever the budget changes anywhere else (e.g. another tab). ────────
+  useEffect(() => {
+    const channel = supabase
+      .channel(`budgets:${userId}:${monthYear}`)
+      .on(
+        'postgres_changes',
+        {
+          event:  '*',
+          schema: 'public',
+          table:  'budgets',
+          filter: `user_id=eq.${userId}`,
+        },
+        () => { load(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, monthYear, load]);
 
   const updateBudget = useCallback(async (input: UpsertBudgetInput) => {
     // Optimistic update

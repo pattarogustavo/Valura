@@ -3,16 +3,26 @@ import {
   View, Text, ScrollView, StyleSheet, TextInput,
   TouchableOpacity, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { useCategories } from '../../src/hooks/useBudget';
 import { theme } from '../../src/theme';
+import { DatePickerField } from '../../src/components/DatePickerField';
 
 const now = new Date();
 
+function todayISO(): string {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export default function AdicionarScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const userId = user!.id;
 
@@ -25,6 +35,7 @@ export default function AdicionarScreen() {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [catId, setCatId] = useState<string | null>(null);
+  const [date, setDate] = useState(todayISO());
   const [saving, setSaving] = useState(false);
 
   const filteredCategories = useMemo(
@@ -42,7 +53,7 @@ export default function AdicionarScreen() {
       amount: parseFloat(amount.replace(',', '.')),
       cat_id: catId!,
       type,
-      date: now.toISOString().slice(0, 10),
+      date,
       notes: null,
     });
     setSaving(false);
@@ -59,7 +70,10 @@ export default function AdicionarScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView style={s.scroll} contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={{ padding: 20, paddingTop: insets.top + 16, paddingBottom: 60 }}
+      >
         <View style={s.headerRow}>
           <Text style={s.title}>Nova transação</Text>
           <TouchableOpacity onPress={() => router.back()}>
@@ -100,6 +114,9 @@ export default function AdicionarScreen() {
           placeholderTextColor={theme.textTer}
           keyboardType="decimal-pad"
         />
+
+        <Text style={s.label}>Data</Text>
+        <DatePickerField value={date} onChange={setDate} />
 
         <Text style={s.label}>Categoria</Text>
         <View style={s.catGrid}>
