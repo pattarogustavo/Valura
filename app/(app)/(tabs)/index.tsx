@@ -10,10 +10,10 @@
 
 import React, { useMemo } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
-import { useAuth }         from '../../src/context/AuthContext';
-import { useTransactions } from '../../src/hooks/useTransactions';
-import { useBudget }       from '../../src/hooks/useBudget';
-import { useCategories }   from '../../src/hooks/useBudget';
+import { useAuth }         from '../../../src/context/AuthContext';
+import { useTransactions } from '../../../src/hooks/useTransactions';
+import { useBudget }       from '../../../src/hooks/useBudget';
+import { useCategories }   from '../../../src/hooks/useBudget';
 
 const now = new Date();
 const CY  = now.getFullYear();
@@ -125,7 +125,7 @@ const T = { brand: '#1756F5', text: '#0A1929', textSec: '#3D5168', textTer: '#80
 const s = StyleSheet.create({
   center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll:       { flex: 1, backgroundColor: '#F2F6FA' },
-  header:       { background: T.brand, backgroundColor: '#1756F5', padding: 20, paddingBottom: 26 },
+  header:       { backgroundColor: '#1756F5', padding: 20, paddingBottom: 26 },
   greeting:     { fontSize: 12, color: 'rgba(255,255,255,.55)', marginBottom: 2 },
   month:        { fontSize: 16, fontWeight: '600', color: 'rgba(255,255,255,.9)', marginBottom: 18, letterSpacing: -0.2 },
   balLabel:     { fontSize: 11, color: 'rgba(255,255,255,.55)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 5 },
