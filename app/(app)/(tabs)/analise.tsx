@@ -7,6 +7,7 @@ import { useTransactions } from '../../../src/hooks/useTransactions';
 import { useBudget, useCategories } from '../../../src/hooks/useBudget';
 import { theme, fCHF, MONTHS_FULL } from '../../../src/theme';
 import { MonthSelector } from '../../../src/components/MonthSelector';
+import { CalendarIcon } from '../../../src/components/Icons';
 
 const now = new Date();
 
@@ -84,7 +85,7 @@ export default function AnaliseScreen() {
         <View style={s.monthRow}>
           <MonthSelector year={viewYear} month={viewMonth} onChange={(y, m) => { setViewYear(y); setViewMonth(m); }} />
           <View style={s.calendarBtn}>
-            <Text style={s.calendarIcon}>📅</Text>
+            <CalendarIcon size={16} color={theme.gold} />
           </View>
         </View>
       </View>

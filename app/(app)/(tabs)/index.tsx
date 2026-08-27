@@ -12,6 +12,7 @@ import { useBudget }       from '../../../src/hooks/useBudget';
 import { useCategories }   from '../../../src/hooks/useBudget';
 import { theme, fCHF, MONTHS_FULL } from '../../../src/theme';
 import { MonthSelector } from '../../../src/components/MonthSelector';
+import { BellIcon, CalendarIcon } from '../../../src/components/Icons';
 
 const now = new Date();
 
@@ -76,7 +77,7 @@ export default function SummaryScreen() {
         <View style={s.headerTop}>
           <Text style={s.greeting}>Bom dia, {user.profile?.display_name ?? 'Ana'}</Text>
           <View style={s.bellBtn}>
-            <Text style={s.bellIcon}>🔔</Text>
+            <BellIcon size={16} color={theme.gold} />
           </View>
         </View>
 
@@ -86,7 +87,7 @@ export default function SummaryScreen() {
             style={s.calendarBtn}
             onPress={() => { setViewYear(now.getFullYear()); setViewMonth(now.getMonth()); }}
           >
-            <Text style={s.calendarIcon}>📅</Text>
+            <CalendarIcon size={16} color={theme.gold} />
           </TouchableOpacity>
         </View>
 
