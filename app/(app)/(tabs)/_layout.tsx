@@ -20,7 +20,9 @@ export default function TabsLayout() {
           tabBarActiveTintColor: theme.brand,
           tabBarInactiveTintColor: theme.textTer,
           tabBarStyle: {
+            backgroundColor: theme.surface,
             borderTopColor: theme.border,
+            borderTopWidth: 1,
             height: Platform.OS === 'ios' ? 88 : 64,
             paddingTop: 8,
           },

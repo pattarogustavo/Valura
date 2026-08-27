@@ -3,7 +3,7 @@
  */
 
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { useAuth }         from '../../../src/context/AuthContext';
@@ -30,9 +30,6 @@ export default function SummaryScreen() {
   const { budget, loading: budLoading, refresh: refreshBudget } = useBudget(userId, monthYear);
   const { categories, loading: catLoading, refresh: refreshCategories } = useCategories(userId);
 
-  // Re-fetch every time this tab regains focus (e.g. after adding a
-  // transaction from the modal, or editing a budget in another tab),
-  // instead of relying only on realtime, which can lag by a moment.
   useFocusEffect(
     useCallback(() => {
       if (!userId) return;
@@ -68,28 +65,37 @@ export default function SummaryScreen() {
   if (!user || loading) {
     return (
       <View style={s.center}>
-        <ActivityIndicator size="large" color={theme.brand} />
+        <ActivityIndicator size="large" color={theme.gold} />
       </View>
     );
   }
 
   return (
     <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: 100 }}>
-      {/* ── Header ── */}
       <View style={[s.header, { paddingTop: insets.top + 16 }]}>
         <View style={s.headerTop}>
-          <Text style={s.greeting}>Bom dia, {user.profile?.display_name ?? 'Ana'} 👋</Text>
-          <MonthSelector year={viewYear} month={viewMonth} onChange={(y, m) => { setViewYear(y); setViewMonth(m); }} light />
+          <Text style={s.greeting}>Bom dia, {user.profile?.display_name ?? 'Ana'}</Text>
+          <View style={s.bellBtn}>
+            <Text style={s.bellIcon}>🔔</Text>
+          </View>
         </View>
 
-        <Text style={s.balLabel}>Saldo disponível</Text>
+        <View style={s.monthRow}>
+          <MonthSelector year={viewYear} month={viewMonth} onChange={(y, m) => { setViewYear(y); setViewMonth(m); }} />
+          <TouchableOpacity
+            style={s.calendarBtn}
+            onPress={() => { setViewYear(now.getFullYear()); setViewMonth(now.getMonth()); }}
+          >
+            <Text style={s.calendarIcon}>📅</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={s.balLabel}>SALDO DISPONÍVEL</Text>
         <Text style={s.balance}>{fCHF(remaining)}</Text>
 
-        {/* Progress bar */}
         <View style={s.barBg}>
           <View style={[s.barFill, {
             width: `${Math.min(100, Math.round((totalExpense / (totalBudget || 1)) * 100))}%`,
-            backgroundColor: savingsRate > 20 ? theme.good : savingsRate > 5 ? theme.warn : theme.danger,
           }]} />
         </View>
 
@@ -104,7 +110,7 @@ export default function SummaryScreen() {
         {[
           { l: 'Receitas', v: fCHF(totalIncome, 0), c: theme.income },
           { l: 'Despesas', v: fCHF(totalExpense, 0), c: theme.expense },
-          { l: thirdKpi.label, v: thirdKpi.value, c: theme.brand },
+          { l: thirdKpi.label, v: thirdKpi.value, c: '#7DD3FC' },
         ].map(k => (
           <View key={k.l} style={s.kpiCard}>
             <Text style={s.kpiLabel}>{k.l}</Text>
@@ -126,7 +132,7 @@ export default function SummaryScreen() {
         const cat = categories.find(c => c.slug === tx.cat_id) ?? categories[categories.length - 1];
         return (
           <View key={tx.id} style={s.txRow}>
-            <View style={[s.txIcon, { backgroundColor: cat?.bg ?? '#F8FAFC' }]}>
+            <View style={[s.txIcon, { backgroundColor: cat?.bg ?? '#233150' }]}>
               <Text style={{ fontSize: 18 }}>{cat?.icon ?? '📦'}</Text>
             </View>
             <View style={{ flex: 1 }}>
@@ -144,27 +150,32 @@ export default function SummaryScreen() {
 }
 
 const s = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg },
   scroll: { flex: 1, backgroundColor: theme.bg },
-  header: { backgroundColor: theme.brand, padding: 20, paddingBottom: 26 },
-  headerTop: { marginBottom: 18 },
-  greeting: { fontSize: 12, color: 'rgba(255,255,255,.55)', marginBottom: 10 },
-  balLabel: { fontSize: 11, color: 'rgba(255,255,255,.55)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 5 },
-  balance: { fontSize: 33, fontWeight: '700', color: theme.white, letterSpacing: -0.5, marginBottom: 16 },
-  barBg: { height: 5, backgroundColor: 'rgba(255,255,255,.2)', borderRadius: 3, marginBottom: 8 },
-  barFill: { height: 5, borderRadius: 3 },
+  header: { padding: 20, paddingBottom: 22 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+  greeting: { fontSize: 17, fontWeight: '700', color: theme.gold, letterSpacing: -0.2 },
+  bellBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
+  bellIcon: { fontSize: 15 },
+  monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 },
+  calendarBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.border },
+  calendarIcon: { fontSize: 15 },
+  balLabel: { fontSize: 11, color: theme.textSec, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 },
+  balance: { fontSize: 32, fontWeight: '700', color: theme.white, letterSpacing: -0.5, marginBottom: 16 },
+  barBg: { height: 5, backgroundColor: 'rgba(255,255,255,.1)', borderRadius: 3, marginBottom: 8 },
+  barFill: { height: 5, borderRadius: 3, backgroundColor: theme.gold },
   barRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  barText: { fontSize: 11, color: 'rgba(255,255,255,.5)' },
+  barText: { fontSize: 11, color: theme.textSec },
   kpiRow: { flexDirection: 'row', gap: 8, padding: 14 },
-  kpiCard: { flex: 1, backgroundColor: theme.white, borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.border },
-  kpiLabel: { fontSize: 10, color: theme.textTer, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 5 },
-  kpiValue: { fontSize: 16, fontWeight: '800', letterSpacing: -0.4 },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: theme.text, marginHorizontal: 16, marginTop: 8, marginBottom: 12, letterSpacing: -0.2 },
-  emptyBox: { marginHorizontal: 16, padding: 24, backgroundColor: theme.white, borderRadius: 14, borderWidth: 1, borderColor: theme.border, alignItems: 'center' },
-  emptyText: { color: theme.textTer, fontSize: 13 },
-  txRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 11, borderBottomWidth: 1, borderColor: theme.border, backgroundColor: theme.white },
+  kpiCard: { flex: 1, backgroundColor: theme.surface, borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.border },
+  kpiLabel: { fontSize: 9, color: theme.textSec, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 },
+  kpiValue: { fontSize: 15, fontWeight: '800', letterSpacing: -0.4 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: theme.white, marginHorizontal: 16, marginTop: 8, marginBottom: 12, letterSpacing: -0.2 },
+  emptyBox: { marginHorizontal: 16, padding: 24, backgroundColor: theme.surface, borderRadius: 14, borderWidth: 1, borderColor: theme.border, alignItems: 'center' },
+  emptyText: { color: theme.textSec, fontSize: 13 },
+  txRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginBottom: 8, padding: 12, borderRadius: 12, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border },
   txIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  txDesc: { fontSize: 14, fontWeight: '600', color: theme.text, letterSpacing: -0.1 },
-  txMeta: { fontSize: 11, color: theme.textTer, marginTop: 2 },
+  txDesc: { fontSize: 14, fontWeight: '600', color: theme.white, letterSpacing: -0.1 },
+  txMeta: { fontSize: 11, color: theme.textSec, marginTop: 2 },
   txAmount: { fontSize: 15, fontWeight: '800', letterSpacing: -0.3 },
 });

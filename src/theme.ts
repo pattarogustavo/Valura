@@ -1,20 +1,32 @@
-// ─── SHARED DESIGN TOKENS ───────────────────────────────────────────────────
-// Matches the palette already used in app/(app)/index.tsx (Resumo screen).
+// ─── SHARED DESIGN TOKENS — dark navy / gold identity ─────────────────────────
 
 export const theme = {
-  brand:        '#1756F5',
-  brandDark:    '#1248C8',
-  text:         '#0A1929',
-  textSec:      '#3D5168',
-  textTer:      '#8097B1',
-  border:       '#D8E4F0',
+  bg:           '#0B1220', // page background — deep navy
+  surface:      '#151F35', // card background
+  surfaceAlt:   '#1B2A47', // slightly lighter surface (highlighted rows)
+  border:       'rgba(255,255,255,0.08)',
+
+  gold:         '#C9A15B', // primary accent
+  goldDark:     '#A9843F',
+  goldSoft:     'rgba(201,161,91,0.15)',
+
+  // Kept for backwards-compat with any code referencing `brand`
+  brand:        '#C9A15B',
+  brandDark:    '#A9843F',
+
+  text:         '#FFFFFF',
+  textSec:      '#94A3B8',
+  textTer:      '#5B6B85',
+
   white:        '#FFFFFF',
-  bg:           '#F2F6FA',
-  income:       '#00B374',
-  expense:      '#E53935',
-  good:         '#00E5A0',
-  warn:         '#FFCC32',
-  danger:       '#FF5252',
+  inputBg:      '#F5F7FA',
+  inputText:    '#0B1220',
+
+  income:       '#4ADE80',
+  expense:      '#F87171',
+  good:         '#4ADE80',
+  warn:         '#FBBF24',
+  danger:       '#F87171',
 };
 
 export const fCHF = (n: number, d = 2) =>

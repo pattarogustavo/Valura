@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
+import { theme } from '../src/theme';
 
 // ─── AUTH GATE ────────────────────────────────────────────────────────────────
 function RootNavigator() {
@@ -22,8 +23,8 @@ function RootNavigator() {
 
   if (!initialized || loading) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1756F5' }}>
-        <ActivityIndicator color="#ffffff" size="large" />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg }}>
+        <ActivityIndicator color={theme.gold} size="large" />
       </View>
     );
   }

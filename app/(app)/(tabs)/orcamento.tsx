@@ -66,7 +66,7 @@ export default function OrcamentoScreen() {
   if (loading) {
     return (
       <View style={s.center}>
-        <ActivityIndicator size="large" color={theme.brand} />
+        <ActivityIndicator size="large" color={theme.gold} />
       </View>
     );
   }
@@ -80,21 +80,19 @@ export default function OrcamentoScreen() {
 
       <View style={s.summaryCard}>
         <View style={s.summaryTopRow}>
-          <View>
-            <Text style={s.summaryLabel}>Total orçado</Text>
-            <Text style={s.summaryValue}>{fCHF(totalBudget, 0)}</Text>
-          </View>
+          <Text style={s.summaryLabel}>TOTAL ORÇADO</Text>
           {totalBudget > 0 && (
             <Text style={[s.summaryPct, totalPct > 100 && s.summaryPctOver]}>{totalPct}%</Text>
           )}
         </View>
+        <Text style={s.summaryValue}>{fCHF(totalBudget, 0)}</Text>
         <View style={s.barTrack}>
           <View
             style={[
               s.barFill,
               {
                 width: `${totalBudget > 0 ? Math.min(100, (totalSpent / totalBudget) * 100) : 0}%`,
-                backgroundColor: totalSpent > totalBudget && totalBudget > 0 ? theme.danger : theme.brand,
+                backgroundColor: totalSpent > totalBudget && totalBudget > 0 ? theme.danger : theme.gold,
               },
             ]}
           />
@@ -115,9 +113,8 @@ export default function OrcamentoScreen() {
           {expenseCategories.map(cat => {
             const spent = spentByCategory.get(cat.slug) ?? 0;
             const goal = budget[cat.slug] ?? 0;
-            // Real percentage, unclamped, so overspending is visible (e.g. 120%).
             const pct = goal > 0 ? Math.round((spent / goal) * 100) : 0;
-            const barWidthPct = Math.min(100, pct); // bar itself is capped so it doesn't overflow the track
+            const barWidthPct = Math.min(100, pct);
             const over = goal > 0 && spent > goal;
 
             return (
@@ -129,7 +126,7 @@ export default function OrcamentoScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={s.catLabel}>{cat.label}</Text>
                     <Text style={s.catSpent}>
-                      {fCHF(spent, 0)} {goal > 0 ? `de ${fCHF(goal, 0)}` : 'gasto'}
+                      {goal > 0 ? `${fCHF(spent, 0)} de ${fCHF(goal, 0)}` : `${fCHF(spent, 0)} gasto`}
                       {goal > 0 && (
                         <Text style={over ? s.catPctOver : s.catPct}> · {pct}%</Text>
                       )}
@@ -146,6 +143,7 @@ export default function OrcamentoScreen() {
                       onBlur={() => commitEdit(cat.slug)}
                       onSubmitEditing={() => commitEdit(cat.slug)}
                       placeholder="0"
+                      placeholderTextColor={theme.textTer}
                     />
                   ) : (
                     <TouchableOpacity onPress={() => startEditing(cat.slug)}>
@@ -159,7 +157,7 @@ export default function OrcamentoScreen() {
                     <View
                       style={[
                         s.catBarFill,
-                        { width: `${barWidthPct}%`, backgroundColor: over ? theme.danger : cat.color },
+                        { width: `${barWidthPct}%`, backgroundColor: over ? theme.danger : theme.gold },
                       ]}
                     />
                   </View>
@@ -174,48 +172,48 @@ export default function OrcamentoScreen() {
 }
 
 const s = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg },
   scroll: { flex: 1, backgroundColor: theme.bg },
   header: { padding: 20, paddingBottom: 12 },
-  title: { fontSize: 24, fontWeight: '800', color: theme.text, letterSpacing: -0.5 },
+  title: { fontSize: 28, fontWeight: '800', color: theme.white, letterSpacing: -0.5 },
   subtitle: { fontSize: 14, color: theme.textSec, marginTop: 2 },
   summaryCard: {
-    marginHorizontal: 16, backgroundColor: theme.white, borderRadius: 14,
+    marginHorizontal: 16, backgroundColor: theme.surface, borderRadius: 14,
     borderWidth: 1, borderColor: theme.border, padding: 16, marginBottom: 8,
   },
-  summaryTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
-  summaryLabel: { fontSize: 11, color: theme.textTer, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-  summaryValue: { fontSize: 22, fontWeight: '800', color: theme.text },
-  summaryPct: { fontSize: 16, fontWeight: '800', color: theme.brand },
+  summaryTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  summaryLabel: { fontSize: 11, color: theme.textSec, textTransform: 'uppercase', letterSpacing: 0.6 },
+  summaryValue: { fontSize: 24, fontWeight: '800', color: theme.white, marginBottom: 12 },
+  summaryPct: { fontSize: 15, fontWeight: '800', color: theme.gold },
   summaryPctOver: { color: theme.danger },
-  summaryHint: { fontSize: 12, color: theme.textSec, marginTop: 6 },
-  barTrack: { height: 8, backgroundColor: '#EEF3F8', borderRadius: 4, overflow: 'hidden' },
-  barFill: { height: 8, borderRadius: 4 },
+  summaryHint: { fontSize: 12, color: theme.textSec, marginTop: 8 },
+  barTrack: { height: 6, backgroundColor: 'rgba(255,255,255,.08)', borderRadius: 3, overflow: 'hidden' },
+  barFill: { height: 6, borderRadius: 3 },
   sectionTitle: {
-    fontSize: 14, fontWeight: '700', color: theme.text,
+    fontSize: 15, fontWeight: '700', color: theme.white,
     marginHorizontal: 16, marginTop: 12, marginBottom: 10, letterSpacing: -0.2,
   },
   emptyBox: {
-    marginHorizontal: 16, padding: 24, backgroundColor: theme.white,
+    marginHorizontal: 16, padding: 24, backgroundColor: theme.surface,
     borderRadius: 14, borderWidth: 1, borderColor: theme.border, alignItems: 'center',
   },
-  emptyText: { color: theme.textTer, fontSize: 13, textAlign: 'center' },
+  emptyText: { color: theme.textSec, fontSize: 13, textAlign: 'center' },
   catCard: {
-    backgroundColor: theme.white, borderRadius: 14, borderWidth: 1,
+    backgroundColor: theme.surface, borderRadius: 14, borderWidth: 1,
     borderColor: theme.border, padding: 12,
   },
   catRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  catIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  catLabel: { fontSize: 14, fontWeight: '700', color: theme.text },
-  catSpent: { fontSize: 12, color: theme.textTer, marginTop: 2 },
+  catIconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  catLabel: { fontSize: 14, fontWeight: '700', color: theme.white },
+  catSpent: { fontSize: 12, color: theme.textSec, marginTop: 2 },
   catPct: { color: theme.textSec, fontWeight: '700' },
   catPctOver: { color: theme.danger, fontWeight: '700' },
-  editLink: { fontSize: 13, fontWeight: '700', color: theme.brand },
+  editLink: { fontSize: 13, fontWeight: '700', color: theme.gold },
   input: {
-    width: 80, borderWidth: 1, borderColor: theme.brand, borderRadius: 8,
+    width: 80, borderWidth: 1, borderColor: theme.gold, borderRadius: 8,
     paddingHorizontal: 8, paddingVertical: 6, fontSize: 14, textAlign: 'right',
-    color: theme.text,
+    color: theme.inputText, backgroundColor: theme.inputBg,
   },
-  catBarTrack: { height: 5, backgroundColor: '#EEF3F8', borderRadius: 3, overflow: 'hidden', marginTop: 10 },
+  catBarTrack: { height: 5, backgroundColor: 'rgba(255,255,255,.08)', borderRadius: 3, overflow: 'hidden', marginTop: 10 },
   catBarFill: { height: 5, borderRadius: 3 },
 });

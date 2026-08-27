@@ -114,9 +114,9 @@ const s = StyleSheet.create({
   field: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     borderWidth: 1, borderColor: theme.border, borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12,
+    paddingHorizontal: 14, paddingVertical: 12, backgroundColor: theme.inputBg,
   },
-  fieldText: { fontSize: 15, color: theme.text },
+  fieldText: { fontSize: 15, color: theme.inputText },
   fieldIcon: { fontSize: 16 },
   backdrop: { flex: 1, backgroundColor: 'rgba(10,25,41,.5)', alignItems: 'center', justifyContent: 'center' },
   calendarBox: {

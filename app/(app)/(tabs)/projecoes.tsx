@@ -8,7 +8,7 @@ import { theme, fCHF, MONTHS_SHORT } from '../../../src/theme';
 import { LineChart, LineChartPoint } from '../../../src/components/LineChart';
 
 const INVESTMENT_CATEGORY_SLUG = 'investment';
-const MAX_MONTHLY_YEARS = 5; // cap detailed monthly view to keep the chart readable
+const MAX_MONTHLY_YEARS = 5;
 
 interface YearProjection {
   year: number;
@@ -56,7 +56,6 @@ function projectMonthly(
   return results;
 }
 
-/** Sum of all-time expenses logged under the "Investimento" category. */
 function useInvestedSoFar(userId: string) {
   const [invested, setInvested] = useState<number | null>(null);
 
@@ -74,9 +73,6 @@ function useInvestedSoFar(userId: string) {
   }, [userId]);
 
   useEffect(() => { load(); }, [load]);
-
-  // Refresh every time this tab regains focus, so a newly-added
-  // investment expense shows up here without needing to restart the app.
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   return invested;
@@ -142,11 +138,10 @@ export default function ProjecoesScreen() {
         </View>
       )}
 
-      {/* Invested so far — pulled from real "Investimento" category expenses */}
       <View style={s.investedCard}>
-        <Text style={s.investedLabel}>Investido até o momento</Text>
+        <Text style={s.investedLabel}>INVESTIDO ATÉ O MOMENTO</Text>
         {investedSoFar === null ? (
-          <ActivityIndicator size="small" color={theme.brand} style={{ marginTop: 6 }} />
+          <ActivityIndicator size="small" color={theme.gold} style={{ marginTop: 6 }} />
         ) : (
           <>
             <Text style={s.investedValue}>{fCHF(investedSoFar, 0)}</Text>
@@ -196,10 +191,12 @@ export default function ProjecoesScreen() {
         <LineChart
           data={chartData}
           height={180}
-          color={theme.brand}
-          formatValue={(v) => fCHF(v, 0)}
+          color={theme.gold}
+          dotBorderColor={theme.white}
           scrollable={view === 'mes'}
           minPointSpacing={40}
+          axisLabelColor="#94A3B8"
+          gridColor="rgba(11,18,32,0.08)"
         />
       </View>
     </ScrollView>
@@ -225,52 +222,53 @@ function Field({
 const s = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: theme.bg },
   header: { padding: 20, paddingBottom: 12 },
-  title: { fontSize: 24, fontWeight: '800', color: theme.text, letterSpacing: -0.5 },
+  title: { fontSize: 28, fontWeight: '800', color: theme.white, letterSpacing: -0.5 },
   subtitle: { fontSize: 14, color: theme.textSec, marginTop: 2 },
   resultCard: {
-    marginHorizontal: 16, backgroundColor: theme.brand,
-    borderRadius: 14, padding: 18,
+    marginHorizontal: 16, backgroundColor: theme.surface,
+    borderRadius: 14, borderWidth: 1, borderColor: theme.border, padding: 18,
   },
-  resultLabel: { fontSize: 12, color: 'rgba(255,255,255,.7)', marginBottom: 4 },
-  resultValue: { fontSize: 28, fontWeight: '800', color: theme.white, letterSpacing: -0.5, marginBottom: 10 },
+  resultLabel: { fontSize: 12, color: theme.textSec, marginBottom: 4 },
+  resultValue: { fontSize: 26, fontWeight: '800', color: theme.white, letterSpacing: -0.5, marginBottom: 10 },
   resultRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  resultSub: { fontSize: 12, color: 'rgba(255,255,255,.85)', fontWeight: '600' },
+  resultSub: { fontSize: 12, color: theme.textSec, fontWeight: '600' },
   investedCard: {
-    marginHorizontal: 16, marginTop: 10, backgroundColor: theme.white,
+    marginHorizontal: 16, marginTop: 10, backgroundColor: theme.surface,
     borderRadius: 14, borderWidth: 1, borderColor: theme.border, padding: 16,
   },
-  investedLabel: { fontSize: 11, color: theme.textTer, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-  investedValue: { fontSize: 20, fontWeight: '800', color: theme.text },
-  investedHint: { fontSize: 11, color: theme.textTer, marginTop: 4 },
+  investedLabel: { fontSize: 11, color: theme.textSec, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 },
+  investedValue: { fontSize: 22, fontWeight: '800', color: theme.white },
+  investedHint: { fontSize: 11, color: theme.textSec, marginTop: 6, lineHeight: 16 },
   formCard: {
-    marginHorizontal: 16, marginTop: 12, backgroundColor: theme.white, borderRadius: 14,
+    marginHorizontal: 16, marginTop: 12, backgroundColor: theme.surface, borderRadius: 14,
     borderWidth: 1, borderColor: theme.border, padding: 16, gap: 12,
   },
   fieldRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   fieldLabel: { fontSize: 13, color: theme.textSec, flex: 1 },
   fieldInput: {
     width: 110, borderWidth: 1, borderColor: theme.border, borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 8, fontSize: 14, textAlign: 'right', color: theme.text,
+    paddingHorizontal: 10, paddingVertical: 8, fontSize: 14, textAlign: 'right',
+    color: theme.inputText, backgroundColor: theme.inputBg,
   },
   totalRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#EEF3F8', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8,
+    backgroundColor: theme.goldSoft, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 10,
   },
   totalLabel: { fontSize: 12, color: theme.textSec, fontWeight: '600' },
-  totalValue: { fontSize: 14, color: theme.brand, fontWeight: '800' },
+  totalValue: { fontSize: 14, color: theme.gold, fontWeight: '800' },
   sectionHeaderRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginHorizontal: 16, marginTop: 18, marginBottom: 4,
+    marginHorizontal: 16, marginTop: 18, marginBottom: 10,
   },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: theme.text, letterSpacing: -0.2 },
-  toggle: { flexDirection: 'row', backgroundColor: '#EEF3F8', borderRadius: 8, padding: 2 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: theme.white, letterSpacing: -0.2 },
+  toggle: { flexDirection: 'row', backgroundColor: theme.surface, borderRadius: 8, padding: 2, borderWidth: 1, borderColor: theme.border },
   toggleBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 6 },
-  toggleBtnActive: { backgroundColor: theme.white },
-  toggleText: { fontSize: 12, fontWeight: '600', color: theme.textTer },
-  toggleTextActive: { color: theme.brand },
-  monthlyNote: { fontSize: 11, color: theme.textTer, marginHorizontal: 16, marginBottom: 8 },
+  toggleBtnActive: { backgroundColor: theme.gold },
+  toggleText: { fontSize: 12, fontWeight: '600', color: theme.textSec },
+  toggleTextActive: { color: theme.bg },
+  monthlyNote: { fontSize: 11, color: theme.textSec, marginHorizontal: 16, marginBottom: 8 },
   chartBox: {
     marginHorizontal: 16, backgroundColor: theme.white, borderRadius: 14,
-    borderWidth: 1, borderColor: theme.border, padding: 16,
+    padding: 16,
   },
 });

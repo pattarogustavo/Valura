@@ -6,10 +6,9 @@ interface MonthSelectorProps {
   year: number;
   month: number; // 0-indexed
   onChange: (year: number, month: number) => void;
-  light?: boolean; // true = white text (for use over a colored/dark header)
 }
 
-export function MonthSelector({ year, month, onChange, light }: MonthSelectorProps) {
+export function MonthSelector({ year, month, onChange }: MonthSelectorProps) {
   const now = new Date();
   const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
 
@@ -27,10 +26,10 @@ export function MonthSelector({ year, month, onChange, light }: MonthSelectorPro
   return (
     <View style={s.row}>
       <TouchableOpacity onPress={goPrev} style={s.arrowBtn} hitSlop={8}>
-        <Text style={[s.arrow, light && s.arrowLight]}>‹</Text>
+        <Text style={s.arrow}>‹</Text>
       </TouchableOpacity>
 
-      <Text style={[s.label, light && s.labelLight]}>
+      <Text style={s.label}>
         {MONTHS_FULL[month]} {year}
       </Text>
 
@@ -40,7 +39,7 @@ export function MonthSelector({ year, month, onChange, light }: MonthSelectorPro
         hitSlop={8}
         disabled={isCurrentMonth}
       >
-        <Text style={[s.arrow, light && s.arrowLight, isCurrentMonth && s.arrowDisabled]}>›</Text>
+        <Text style={[s.arrow, isCurrentMonth && s.arrowDisabled]}>›</Text>
       </TouchableOpacity>
     </View>
   );
@@ -49,9 +48,7 @@ export function MonthSelector({ year, month, onChange, light }: MonthSelectorPro
 const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   arrowBtn: { padding: 4 },
-  arrow: { fontSize: 22, fontWeight: '700', color: theme.text },
-  arrowLight: { color: theme.white },
+  arrow: { fontSize: 22, fontWeight: '700', color: theme.white },
   arrowDisabled: { opacity: 0.3 },
-  label: { fontSize: 14, fontWeight: '600', color: theme.textSec, minWidth: 120, textAlign: 'center' },
-  labelLight: { color: 'rgba(255,255,255,.9)' },
+  label: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,.85)', minWidth: 120, textAlign: 'center' },
 });

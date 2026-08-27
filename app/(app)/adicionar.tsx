@@ -125,13 +125,14 @@ export default function AdicionarScreen() {
               key={cat.id}
               style={[
                 s.catChip,
-                { backgroundColor: cat.bg },
-                catId === cat.slug && { borderColor: cat.color, borderWidth: 2 },
+                catId === cat.slug && s.catChipActive,
               ]}
               onPress={() => setCatId(cat.slug)}
             >
               <Text style={{ fontSize: 16 }}>{cat.icon}</Text>
-              <Text style={s.catChipLabel} numberOfLines={1}>{cat.label}</Text>
+              <Text style={[s.catChipLabel, catId === cat.slug && s.catChipLabelActive]} numberOfLines={1}>
+                {cat.label}
+              </Text>
             </TouchableOpacity>
           ))}
           {filteredCategories.length === 0 && (
@@ -152,35 +153,38 @@ export default function AdicionarScreen() {
 }
 
 const s = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: theme.white },
+  scroll: { flex: 1, backgroundColor: theme.bg },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  title: { fontSize: 20, fontWeight: '800', color: theme.text, letterSpacing: -0.4 },
-  close: { fontSize: 14, color: theme.brand, fontWeight: '600' },
+  title: { fontSize: 20, fontWeight: '800', color: theme.white, letterSpacing: -0.4 },
+  close: { fontSize: 14, color: theme.gold, fontWeight: '600' },
   typeToggle: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   typeBtn: {
     flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center',
-    backgroundColor: '#F2F6FA', borderWidth: 1, borderColor: theme.border,
+    backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border,
   },
-  typeBtnActiveExpense: { backgroundColor: '#FDECEC', borderColor: theme.expense },
-  typeBtnActiveIncome: { backgroundColor: '#E7F8F1', borderColor: theme.income },
+  typeBtnActiveExpense: { backgroundColor: 'rgba(248,113,113,0.15)', borderColor: theme.expense },
+  typeBtnActiveIncome: { backgroundColor: 'rgba(74,222,128,0.15)', borderColor: theme.income },
   typeBtnText: { fontSize: 14, fontWeight: '700', color: theme.textSec },
-  typeBtnTextActive: { color: theme.text },
+  typeBtnTextActive: { color: theme.white },
   label: { fontSize: 12, fontWeight: '600', color: theme.textSec, marginBottom: 6, marginTop: 14 },
   input: {
     borderWidth: 1, borderColor: theme.border, borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: theme.text,
+    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15,
+    color: theme.inputText, backgroundColor: theme.inputBg,
   },
   catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   catChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10,
-    borderWidth: 2, borderColor: 'transparent', maxWidth: 160,
+    borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface, maxWidth: 160,
   },
-  catChipLabel: { fontSize: 13, fontWeight: '600', color: theme.text },
-  emptyText: { fontSize: 13, color: theme.textTer },
+  catChipActive: { borderColor: theme.gold, backgroundColor: theme.goldSoft },
+  catChipLabel: { fontSize: 13, fontWeight: '600', color: theme.textSec },
+  catChipLabelActive: { color: theme.white },
+  emptyText: { fontSize: 13, color: theme.textSec },
   saveBtn: {
-    marginTop: 28, backgroundColor: theme.brand, borderRadius: 12,
+    marginTop: 28, backgroundColor: theme.gold, borderRadius: 12,
     paddingVertical: 15, alignItems: 'center',
   },
-  saveBtnText: { color: theme.white, fontSize: 15, fontWeight: '700' },
+  saveBtnText: { color: theme.bg, fontSize: 15, fontWeight: '700' },
 });

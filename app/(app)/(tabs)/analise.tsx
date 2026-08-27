@@ -56,8 +56,7 @@ export default function AnaliseScreen() {
           amount,
           label: cat?.label ?? catId,
           icon: cat?.icon ?? '📦',
-          color: cat?.color ?? theme.brand,
-          bg: cat?.bg ?? '#F8FAFC',
+          color: cat?.color ?? theme.gold,
           pct: totalExpense > 0 ? Math.round((amount / totalExpense) * 100) : 0,
           goal,
           budgetPct,
@@ -71,7 +70,7 @@ export default function AnaliseScreen() {
   if (!user || loading) {
     return (
       <View style={s.center}>
-        <ActivityIndicator size="large" color={theme.brand} />
+        <ActivityIndicator size="large" color={theme.gold} />
       </View>
     );
   }
@@ -82,16 +81,21 @@ export default function AnaliseScreen() {
     <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: 120 }}>
       <View style={[s.header, { paddingTop: insets.top + 16 }]}>
         <Text style={s.title}>Análise</Text>
-        <MonthSelector year={viewYear} month={viewMonth} onChange={(y, m) => { setViewYear(y); setViewMonth(m); }} />
+        <View style={s.monthRow}>
+          <MonthSelector year={viewYear} month={viewMonth} onChange={(y, m) => { setViewYear(y); setViewMonth(m); }} />
+          <View style={s.calendarBtn}>
+            <Text style={s.calendarIcon}>📅</Text>
+          </View>
+        </View>
       </View>
 
       <View style={s.kpiRow}>
         <View style={s.kpiCard}>
-          <Text style={s.kpiLabel}>Receitas</Text>
+          <Text style={s.kpiLabel}>RECEITAS</Text>
           <Text style={[s.kpiValue, { color: theme.income }]}>{fCHF(totalIncome, 0)}</Text>
         </View>
         <View style={s.kpiCard}>
-          <Text style={s.kpiLabel}>Despesas</Text>
+          <Text style={s.kpiLabel}>DESPESAS</Text>
           <Text style={[s.kpiValue, { color: theme.expense }]}>{fCHF(totalExpense, 0)}</Text>
         </View>
       </View>
@@ -103,21 +107,13 @@ export default function AnaliseScreen() {
           <Text style={s.emptyText}>Nenhuma despesa registrada em {MONTHS_FULL[viewMonth]}.</Text>
         </View>
       ) : (
-        <View style={s.chartBox}>
+        <View style={{ paddingHorizontal: 16, gap: 10 }}>
           {byCategory.map(c => {
             const overBudget = c.budgetPct !== null && c.budgetPct > 100;
             return (
-              <View key={c.catId} style={s.barRow}>
+              <View key={c.catId} style={s.catCard}>
                 <View style={s.barLabelRow}>
-                  <Text style={s.barIcon}>{c.icon}</Text>
-                  <Text style={s.barLabel} numberOfLines={1}>{c.label}</Text>
-                  {c.budgetPct !== null && (
-                    <View style={[s.budgetBadge, overBudget && s.budgetBadgeOver]}>
-                      <Text style={[s.budgetBadgeText, overBudget && s.budgetBadgeTextOver]}>
-                        {c.budgetPct}% do orçamento
-                      </Text>
-                    </View>
-                  )}
+                  <Text style={s.barLabel}>{c.label}</Text>
                   <Text style={s.barPct}>{c.pct}%</Text>
                 </View>
                 <View style={s.barTrack}>
@@ -126,14 +122,21 @@ export default function AnaliseScreen() {
                       s.barFill,
                       {
                         width: `${Math.max(4, (c.amount / maxAmount) * 100)}%`,
-                        backgroundColor: overBudget ? theme.danger : c.color,
+                        backgroundColor: overBudget ? theme.danger : theme.gold,
                       },
                     ]}
                   />
                 </View>
-                <Text style={s.barAmount}>
-                  {fCHF(c.amount, 0)}{c.goal > 0 ? ` de ${fCHF(c.goal, 0)}` : ''}
-                </Text>
+                <View style={s.bottomRow}>
+                  <Text style={s.barAmount}>{fCHF(c.amount, 0)}</Text>
+                  {c.budgetPct !== null && (
+                    <View style={[s.budgetBadge, overBudget && s.budgetBadgeOver]}>
+                      <Text style={[s.budgetBadgeText, overBudget && s.budgetBadgeTextOver]}>
+                        {c.budgetPct}% do orçamento
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
             );
           })}
@@ -144,40 +147,42 @@ export default function AnaliseScreen() {
 }
 
 const s = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg },
   scroll: { flex: 1, backgroundColor: theme.bg },
-  header: { padding: 20, paddingBottom: 12, gap: 10 },
-  title: { fontSize: 24, fontWeight: '800', color: theme.text, letterSpacing: -0.5 },
+  header: { padding: 20, paddingBottom: 12, gap: 12 },
+  title: { fontSize: 28, fontWeight: '800', color: theme.white, letterSpacing: -0.5 },
+  monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  calendarBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.border },
+  calendarIcon: { fontSize: 15 },
   kpiRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 8 },
   kpiCard: {
-    flex: 1, backgroundColor: theme.white, borderRadius: 14, padding: 14,
+    flex: 1, backgroundColor: theme.surface, borderRadius: 14, padding: 14,
     borderWidth: 1, borderColor: theme.border,
   },
-  kpiLabel: { fontSize: 11, color: theme.textTer, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
+  kpiLabel: { fontSize: 10, color: theme.textSec, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 },
   kpiValue: { fontSize: 18, fontWeight: '800' },
   sectionTitle: {
-    fontSize: 14, fontWeight: '700', color: theme.text,
+    fontSize: 15, fontWeight: '700', color: theme.white,
     marginHorizontal: 16, marginTop: 16, marginBottom: 10, letterSpacing: -0.2,
   },
   emptyBox: {
-    marginHorizontal: 16, padding: 24, backgroundColor: theme.white,
+    marginHorizontal: 16, padding: 24, backgroundColor: theme.surface,
     borderRadius: 14, borderWidth: 1, borderColor: theme.border, alignItems: 'center',
   },
-  emptyText: { color: theme.textTer, fontSize: 13, textAlign: 'center' },
-  chartBox: {
-    marginHorizontal: 16, backgroundColor: theme.white, borderRadius: 14,
-    borderWidth: 1, borderColor: theme.border, padding: 16, gap: 16,
+  emptyText: { color: theme.textSec, fontSize: 13, textAlign: 'center' },
+  catCard: {
+    backgroundColor: theme.surface, borderRadius: 14,
+    borderWidth: 1, borderColor: theme.border, padding: 16, gap: 8,
   },
-  barRow: { gap: 6 },
-  barLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  barIcon: { fontSize: 14 },
-  barLabel: { flex: 1, fontSize: 13, fontWeight: '600', color: theme.text },
-  barPct: { fontSize: 12, color: theme.textTer, fontWeight: '600' },
-  budgetBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: '#EEF3F8' },
-  budgetBadgeOver: { backgroundColor: '#FDECEC' },
-  budgetBadgeText: { fontSize: 10, fontWeight: '700', color: theme.textSec },
-  budgetBadgeTextOver: { color: theme.danger },
-  barTrack: { height: 8, backgroundColor: '#EEF3F8', borderRadius: 4, overflow: 'hidden' },
-  barFill: { height: 8, borderRadius: 4 },
+  barLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  barLabel: { fontSize: 14, fontWeight: '700', color: theme.white },
+  barPct: { fontSize: 13, color: theme.textSec, fontWeight: '600' },
+  barTrack: { height: 6, backgroundColor: 'rgba(255,255,255,.08)', borderRadius: 3, overflow: 'hidden' },
+  barFill: { height: 6, borderRadius: 3 },
+  bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   barAmount: { fontSize: 12, color: theme.textSec, fontWeight: '600' },
+  budgetBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: theme.goldSoft },
+  budgetBadgeOver: { backgroundColor: 'rgba(248,113,113,0.15)' },
+  budgetBadgeText: { fontSize: 10, fontWeight: '700', color: theme.gold },
+  budgetBadgeTextOver: { color: theme.danger },
 });
