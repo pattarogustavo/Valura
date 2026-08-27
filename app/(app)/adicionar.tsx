@@ -10,6 +10,7 @@ import { useTransactions } from '../../src/hooks/useTransactions';
 import { useCategories } from '../../src/hooks/useBudget';
 import { theme } from '../../src/theme';
 import { DatePickerField } from '../../src/components/DatePickerField';
+import { CategoryIcon } from '../../src/components/CategoryIcon';
 
 const now = new Date();
 
@@ -129,7 +130,7 @@ export default function AdicionarScreen() {
               ]}
               onPress={() => setCatId(cat.slug)}
             >
-              <Text style={{ fontSize: 16 }}>{cat.icon}</Text>
+              <CategoryIcon slug={cat.slug} size={16} color={catId === cat.slug ? theme.gold : cat.color} />
               <Text style={[s.catChipLabel, catId === cat.slug && s.catChipLabelActive]} numberOfLines={1}>
                 {cat.label}
               </Text>

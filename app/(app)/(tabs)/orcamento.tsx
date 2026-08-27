@@ -9,6 +9,7 @@ import { useAuth } from '../../../src/context/AuthContext';
 import { useTransactions } from '../../../src/hooks/useTransactions';
 import { useBudget, useCategories } from '../../../src/hooks/useBudget';
 import { theme, fCHF, MONTHS_FULL } from '../../../src/theme';
+import { CategoryIcon } from '../../../src/components/CategoryIcon';
 
 const now = new Date();
 const CY = now.getFullYear();
@@ -121,7 +122,7 @@ export default function OrcamentoScreen() {
               <View key={cat.id} style={s.catCard}>
                 <View style={s.catRow}>
                   <View style={[s.catIconWrap, { backgroundColor: cat.bg }]}>
-                    <Text style={{ fontSize: 16 }}>{cat.icon}</Text>
+                    <CategoryIcon slug={cat.slug} size={16} color={cat.color} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={s.catLabel}>{cat.label}</Text>

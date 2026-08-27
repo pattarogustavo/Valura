@@ -13,6 +13,7 @@ import { useCategories }   from '../../../src/hooks/useBudget';
 import { theme, fCHF, MONTHS_FULL } from '../../../src/theme';
 import { MonthSelector } from '../../../src/components/MonthSelector';
 import { BellIcon, CalendarIcon } from '../../../src/components/Icons';
+import { CategoryIcon } from '../../../src/components/CategoryIcon';
 
 const now = new Date();
 
@@ -134,7 +135,7 @@ export default function SummaryScreen() {
         return (
           <View key={tx.id} style={s.txRow}>
             <View style={[s.txIcon, { backgroundColor: cat?.bg ?? '#233150' }]}>
-              <Text style={{ fontSize: 18 }}>{cat?.icon ?? '📦'}</Text>
+              <CategoryIcon slug={cat?.slug ?? 'other'} size={18} color={cat?.color ?? theme.textSec} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.txDesc}>{tx.description}</Text>

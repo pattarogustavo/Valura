@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable } from 'react-native';
 import { theme, MONTHS_FULL } from '../theme';
+import { CalendarIcon } from './Icons';
 
 interface DatePickerFieldProps {
   value: string; // 'YYYY-MM-DD'
@@ -60,7 +61,7 @@ export function DatePickerField({ value, onChange }: DatePickerFieldProps) {
     <>
       <TouchableOpacity style={s.field} onPress={openPicker}>
         <Text style={s.fieldText}>{formatDisplay(value)}</Text>
-        <Text style={s.fieldIcon}>📅</Text>
+        <CalendarIcon size={16} color={theme.textSec} />
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>

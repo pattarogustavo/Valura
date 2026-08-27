@@ -56,7 +56,6 @@ export default function AnaliseScreen() {
           catId,
           amount,
           label: cat?.label ?? catId,
-          icon: cat?.icon ?? '📦',
           color: cat?.color ?? theme.gold,
           pct: totalExpense > 0 ? Math.round((amount / totalExpense) * 100) : 0,
           goal,
