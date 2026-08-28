@@ -158,6 +158,45 @@ export function PlusIcon({ size = 24, color = '#FFFFFF', strokeWidth = 2.2 }: Ic
   );
 }
 
+export function SettingsIcon({ size = 20, color = '#FFFFFF', strokeWidth = 1.6 }: IconProps) {
+  const cx = size / 2, cy = size / 2;
+  const rRing = size * 0.3;
+  const rToothStart = size * 0.32;
+  const rToothEnd = size * 0.48;
+  const teeth = 6;
+  return (
+    <View style={{ width: size, height: size }}>
+      <View
+        style={{
+          position: 'absolute', left: cx - rRing, top: cy - rRing,
+          width: rRing * 2, height: rRing * 2, borderRadius: rRing,
+          borderWidth: strokeWidth, borderColor: color,
+        }}
+      />
+      {Array.from({ length: teeth }).map((_, i) => {
+        const theta = (i / teeth) * Math.PI * 2;
+        const x1 = cx + rToothStart * Math.cos(theta);
+        const y1 = cy + rToothStart * Math.sin(theta);
+        const x2 = cx + rToothEnd * Math.cos(theta);
+        const y2 = cy + rToothEnd * Math.sin(theta);
+        return (
+          <Segment key={i} x1={x1} y1={y1} x2={x2} y2={y2} color={color} thickness={strokeWidth * 1.6} />
+        );
+      })}
+    </View>
+  );
+}
+
+export function ChevronRightIcon({ size = 16, color = '#FFFFFF', strokeWidth = 1.6 }: IconProps) {
+  const w = size, h = size;
+  return (
+    <View style={{ width: w, height: h }}>
+      <Segment x1={w * 0.32} y1={h * 0.18} x2={w * 0.72} y2={h * 0.5} color={color} thickness={strokeWidth} />
+      <Segment x1={w * 0.72} y1={h * 0.5} x2={w * 0.32} y2={h * 0.82} color={color} thickness={strokeWidth} />
+    </View>
+  );
+}
+
 // ─── Category icons ────────────────────────────────────────────────────────────
 
 export function CartIcon({ size = 18, color = '#FFFFFF', strokeWidth = 1.5 }: IconProps) {

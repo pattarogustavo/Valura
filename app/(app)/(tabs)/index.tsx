@@ -5,14 +5,14 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth }         from '../../../src/context/AuthContext';
 import { useTransactions } from '../../../src/hooks/useTransactions';
 import { useBudget }       from '../../../src/hooks/useBudget';
 import { useCategories }   from '../../../src/hooks/useBudget';
 import { theme, fCHF, MONTHS_FULL } from '../../../src/theme';
 import { MonthSelector } from '../../../src/components/MonthSelector';
-import { BellIcon, CalendarIcon } from '../../../src/components/Icons';
+import { BellIcon, CalendarIcon, SettingsIcon } from '../../../src/components/Icons';
 import { CategoryIcon } from '../../../src/components/CategoryIcon';
 
 const now = new Date();
@@ -20,6 +20,7 @@ const now = new Date();
 export default function SummaryScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -77,8 +78,13 @@ export default function SummaryScreen() {
       <View style={[s.header, { paddingTop: insets.top + 16 }]}>
         <View style={s.headerTop}>
           <Text style={s.greeting}>Bom dia, {user.profile?.display_name ?? 'Ana'}</Text>
-          <View style={s.bellBtn}>
-            <BellIcon size={16} color={theme.gold} />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={s.bellBtn}>
+              <BellIcon size={16} color={theme.gold} />
+            </View>
+            <TouchableOpacity style={s.bellBtn} onPress={() => router.push('/(app)/configuracoes')}>
+              <SettingsIcon size={16} color={theme.gold} />
+            </TouchableOpacity>
           </View>
         </View>
 
