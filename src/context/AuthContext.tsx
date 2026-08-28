@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import * as AuthService from '../services/auth.service';
+import * as SubscriptionService from '../services/subscription.service';
 import type { AuthUser, AuthState } from '../types';
 
 // ─── CONTEXT SHAPE ────────────────────────────────────────────────────────────
@@ -11,6 +12,9 @@ interface AuthContextValue extends AuthState {
   signInWithApple:    () => Promise<{ error?: string }>;
   signOut:            () => Promise<void>;
   refreshUser:        () => Promise<void>;
+  sendPasswordReset:  (email: string) => Promise<{ error?: string }>;
+  updatePassword:     (newPassword: string) => Promise<{ error?: string }>;
+  deleteAccount:      () => Promise<{ error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -24,8 +28,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initialized: false,
   });
 
-  const setUser = (user: AuthUser | null) =>
+  const setUser = (user: AuthUser | null) => {
     setState(s => ({ ...s, user, loading: false, initialized: true }));
+    // Keep RevenueCat's identity in lockstep with the Supabase user (see
+    // SubscriptionService — these are stubs until the native SDK is added).
+    if (user) {
+      SubscriptionService.identifyUser(user.id);
+    } else {
+      SubscriptionService.resetIdentity();
+    }
+  };
 
   // ── Initialize: restore session on app start ──────────────────────────────
   useEffect(() => {
@@ -107,6 +119,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(user);
   }, []);
 
+  const sendPasswordReset = useCallback(async (email: string) => {
+    const result = await AuthService.sendPasswordReset(email);
+    if (result.ok) return {};
+    return { error: result.error };
+  }, []);
+
+  const updatePassword = useCallback(async (newPassword: string) => {
+    const result = await AuthService.updatePassword(newPassword);
+    if (result.ok) return {};
+    return { error: result.error };
+  }, []);
+
+  const deleteAccount = useCallback(async () => {
+    const result = await AuthService.deleteAccount();
+    if (result.ok) {
+      setUser(null);
+      return {};
+    }
+    return { error: result.error };
+  }, []);
+
   return (
     <AuthContext.Provider value={{
       ...state,
@@ -115,6 +148,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithApple,
       signOut,
       refreshUser,
+      sendPasswordReset,
+      updatePassword,
+      deleteAccount,
     }}>
       {children}
     </AuthContext.Provider>

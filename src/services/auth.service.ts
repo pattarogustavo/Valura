@@ -179,13 +179,16 @@ export async function updateEmail(newEmail: string): Promise<Result<void>> {
 
 // ─── ACCOUNT DELETION ─────────────────────────────────────────────────────────
 
-export async function deleteAccount(userId: string): Promise<Result<void>> {
+export async function deleteAccount(): Promise<Result<void>> {
   try {
-    await supabase.auth.signOut();
-    const { error } = await supabase.functions.invoke('delete-account', {
-      body: { user_id: userId },
-    });
+    // IMPORTANT: call the Edge Function BEFORE signing out — it needs the
+    // active session's JWT to verify who's calling. It never trusts a
+    // client-supplied user id; the account deleted is always the caller's
+    // own, resolved server-side from the token.
+    const { error } = await supabase.functions.invoke('delete-account');
     if (error) return { ok: false, error: error.message };
+
+    await supabase.auth.signOut();
     return { ok: true, data: undefined };
   } catch (e: any) {
     return { ok: false, error: e.message };

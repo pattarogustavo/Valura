@@ -111,6 +111,30 @@ export type Result<T> =
 // key = cat_id, value = planned amount
 export type BudgetMap = Record<string, number>;
 
+// ─── SUBSCRIPTION ─────────────────────────────────────────────────────────────
+
+export type SubscriptionStatus =
+  | 'none'           // never subscribed
+  | 'trialing'       // in a free trial period
+  | 'active'         // paid and current
+  | 'expired'        // lapsed, not renewed
+  | 'cancelled'      // user cancelled, may still be active until expires_at
+  | 'billing_issue'  // payment failed, Apple/Google retrying
+  | 'grace_period';  // billing issue but still within grace window
+
+export interface Subscription {
+  user_id:                string;
+  revenuecat_customer_id: string | null;
+  product_id:              string | null;
+  entitlement:             string | null;
+  status:                  SubscriptionStatus;
+  store:                   string | null;
+  expires_at:               string | null; // ISO timestamp
+  will_renew:               boolean;
+  created_at:               string;
+  updated_at:               string;
+}
+
 // ─── SUPABASE DATABASE TYPES (auto-generated shape) ──────────────────────────
 
 export type Database = {
@@ -121,6 +145,7 @@ export type Database = {
       transactions:     { Row: Transaction };
       budgets:          { Row: Budget };
       monthly_snapshots:{ Row: MonthlySnapshot };
+      subscriptions:    { Row: Subscription };
     };
   };
 };
