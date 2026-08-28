@@ -4,6 +4,9 @@ import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { theme } from '../src/theme';
+import { configureSDK } from '../src/services/subscription.service';
+
+configureSDK();
 
 // ─── AUTH GATE ────────────────────────────────────────────────────────────────
 function RootNavigator() {

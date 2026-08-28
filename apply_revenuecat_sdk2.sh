@@ -1,3 +1,63 @@
+#!/bin/bash
+set -e
+echo "Instalando o SDK do RevenueCat (react-native-purchases)..."
+
+mkdir -p "$(dirname "package.json")"
+cat > "package.json" << 'FILEEOF'
+{
+  "name": "valura",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "start": "expo start",
+    "ios": "expo run:ios",
+    "android": "expo run:android"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "~2.1.0",
+    "@supabase/supabase-js": "2.45.0",
+    "browserify-zlib": "^0.2.0",
+    "crypto-browserify": "^3.12.0",
+    "events": "^3.3.0",
+    "expo": "~53.0.0",
+    "expo-apple-authentication": "~7.2.4",
+    "expo-asset": "~11.1.7",
+    "expo-auth-session": "~6.2.1",
+    "expo-constants": "~17.1.8",
+    "expo-dev-client": "~5.2.4",
+    "expo-image-picker": "~16.1.4",
+    "expo-linking": "~7.1.7",
+    "expo-router": "~5.1.11",
+    "expo-status-bar": "~2.2.3",
+    "expo-web-browser": "~14.2.0",
+    "https-browserify": "^1.0.0",
+    "os-browserify": "^0.3.0",
+    "path-browserify": "^1.0.1",
+    "react": "19.0.0",
+    "react-native": "0.79.6",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-purchases": "^10.8.1",
+    "react-native-screens": "~4.11.1",
+    "react-native-url-polyfill": "^2.0.0",
+    "stream-browserify": "^3.0.0",
+    "stream-http": "^3.2.0",
+    "url": "^0.11.0",
+    "util": "^0.12.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.0",
+    "@expo/config-plugins": "~10.1.1",
+    "@types/react": "~19.0.10",
+    "typescript": "~5.8.3"
+  }
+}
+FILEEOF
+
+mkdir -p "$(dirname "src/services/subscription.service.ts")"
+cat > "src/services/subscription.service.ts" << 'FILEEOF'
 import { Platform } from 'react-native';
 import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 import * as SubscriptionRepo from '../repositories/subscription.repository';
@@ -153,3 +213,84 @@ export async function restorePurchases(): Promise<{ ok: boolean; error?: string 
     return { ok: false, error: e?.message ?? 'Não foi possível restaurar as compras.' };
   }
 }
+FILEEOF
+
+mkdir -p "$(dirname "app/_layout.tsx")"
+cat > "app/_layout.tsx" << 'FILEEOF'
+import React, { useEffect } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider, useAuth } from '../src/context/AuthContext';
+import { theme } from '../src/theme';
+import { configureSDK } from '../src/services/subscription.service';
+
+configureSDK();
+
+// ─── AUTH GATE ────────────────────────────────────────────────────────────────
+function RootNavigator() {
+  const { user, loading, initialized } = useAuth();
+  const router   = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (!initialized) return;
+    const inAuthGroup = segments[0] === '(auth)';
+    if (!user && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    } else if (user && inAuthGroup) {
+      router.replace('/(app)');
+    }
+  }, [user, initialized, segments]);
+
+  if (!initialized || loading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg }}>
+        <ActivityIndicator color={theme.gold} size="large" />
+      </View>
+    );
+  }
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(app)" />
+    </Stack>
+  );
+}
+
+// ─── ROOT LAYOUT ──────────────────────────────────────────────────────────────
+export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
+    </SafeAreaProvider>
+  );
+}
+FILEEOF
+
+npm install
+npx tsc --noEmit
+
+echo "Verificando autolinking (o mesmo comando que o Podfile usa de verdade)..."
+npx expo-modules-autolinking react-native-config --json --platform ios 2>/dev/null | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+deps = data.get('dependencies', {})
+if 'react-native-purchases' in deps:
+    print('OK: react-native-purchases sera linkado no build')
+else:
+    print('AVISO: nao apareceu no autolinking, revisar antes de buildar')
+    sys.exit(1)
+"
+
+echo "Tudo OK. Fazendo commit..."
+git add -A
+git commit -m "Install RevenueCat SDK (react-native-purchases) and wire up SubscriptionService"
+git push
+
+echo ""
+echo "Agora e so gerar o build:"
+echo "  eas build --platform ios --profile development"
