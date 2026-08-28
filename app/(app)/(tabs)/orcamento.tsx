@@ -6,10 +6,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../../../src/context/AuthContext';
+import { usePrivacy } from '../../../src/context/PrivacyContext';
 import { useTransactions } from '../../../src/hooks/useTransactions';
 import { useBudget, useCategories } from '../../../src/hooks/useBudget';
-import { theme, fCHF, MONTHS_FULL } from '../../../src/theme';
+import { theme, MONTHS_FULL } from '../../../src/theme';
 import { CategoryIcon } from '../../../src/components/CategoryIcon';
+import { EyeIcon, EyeOffIcon } from '../../../src/components/Icons';
 
 const now = new Date();
 const CY = now.getFullYear();
@@ -18,6 +20,7 @@ const monthYear = `${CY}-${String(CM + 1).padStart(2, '0')}`;
 
 export default function OrcamentoScreen() {
   const { user } = useAuth();
+  const { hidden, toggle, formatAmount } = usePrivacy();
   const insets = useSafeAreaInsets();
   const userId = user!.id;
 
@@ -75,8 +78,17 @@ export default function OrcamentoScreen() {
   return (
     <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: 120 }}>
       <View style={[s.header, { paddingTop: insets.top + 16 }]}>
-        <Text style={s.title}>Orçamento</Text>
-        <Text style={s.subtitle}>{MONTHS_FULL[CM]} {CY}</Text>
+        <View style={s.titleRow}>
+          <View>
+            <Text style={s.title}>Orçamento</Text>
+            <Text style={s.subtitle}>{MONTHS_FULL[CM]} {CY}</Text>
+          </View>
+          <TouchableOpacity style={s.eyeBtn} onPress={toggle}>
+            {hidden
+              ? <EyeOffIcon size={16} color={theme.gold} />
+              : <EyeIcon size={16} color={theme.gold} />}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={s.summaryCard}>
@@ -86,7 +98,7 @@ export default function OrcamentoScreen() {
             <Text style={[s.summaryPct, totalPct > 100 && s.summaryPctOver]}>{totalPct}%</Text>
           )}
         </View>
-        <Text style={s.summaryValue}>{fCHF(totalBudget, 0)}</Text>
+        <Text style={s.summaryValue}>{formatAmount(totalBudget, 0)}</Text>
         <View style={s.barTrack}>
           <View
             style={[
@@ -99,7 +111,7 @@ export default function OrcamentoScreen() {
           />
         </View>
         <Text style={s.summaryHint}>
-          Gasto: {fCHF(totalSpent, 0)} de {fCHF(totalBudget, 0)}
+          Gasto: {formatAmount(totalSpent, 0)} de {formatAmount(totalBudget, 0)}
         </Text>
       </View>
 
@@ -127,7 +139,7 @@ export default function OrcamentoScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={s.catLabel}>{cat.label}</Text>
                     <Text style={s.catSpent}>
-                      {goal > 0 ? `${fCHF(spent, 0)} de ${fCHF(goal, 0)}` : `${fCHF(spent, 0)} gasto`}
+                      {goal > 0 ? `${formatAmount(spent, 0)} de ${formatAmount(goal, 0)}` : `${formatAmount(spent, 0)} gasto`}
                       {goal > 0 && (
                         <Text style={over ? s.catPctOver : s.catPct}> · {pct}%</Text>
                       )}
@@ -176,6 +188,8 @@ const s = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg },
   scroll: { flex: 1, backgroundColor: theme.bg },
   header: { padding: 20, paddingBottom: 12 },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  eyeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 28, fontWeight: '800', color: theme.white, letterSpacing: -0.5 },
   subtitle: { fontSize: 14, color: theme.textSec, marginTop: 2 },
   summaryCard: {

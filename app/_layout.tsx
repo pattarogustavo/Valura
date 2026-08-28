@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
+import { PrivacyProvider } from '../src/context/PrivacyContext';
 import { theme } from '../src/theme';
 
 // ─── AUTH GATE ────────────────────────────────────────────────────────────────
@@ -42,7 +43,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <RootNavigator />
+        <PrivacyProvider>
+          <RootNavigator />
+        </PrivacyProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

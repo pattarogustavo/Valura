@@ -1,18 +1,20 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../../../src/context/AuthContext';
+import { usePrivacy } from '../../../src/context/PrivacyContext';
 import { useTransactions } from '../../../src/hooks/useTransactions';
 import { useBudget, useCategories } from '../../../src/hooks/useBudget';
-import { theme, fCHF, MONTHS_FULL } from '../../../src/theme';
+import { theme, MONTHS_FULL } from '../../../src/theme';
 import { MonthSelector } from '../../../src/components/MonthSelector';
-import { CalendarIcon } from '../../../src/components/Icons';
+import { EyeIcon, EyeOffIcon } from '../../../src/components/Icons';
 
 const now = new Date();
 
 export default function AnaliseScreen() {
   const { user } = useAuth();
+  const { hidden, toggle, formatAmount } = usePrivacy();
   const insets = useSafeAreaInsets();
   const userId = user?.id ?? '';
 
@@ -80,23 +82,27 @@ export default function AnaliseScreen() {
   return (
     <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: 120 }}>
       <View style={[s.header, { paddingTop: insets.top + 16 }]}>
-        <Text style={s.title}>Análise</Text>
+        <View style={s.titleRow}>
+          <Text style={s.title}>Análise</Text>
+          <TouchableOpacity style={s.eyeBtn} onPress={toggle}>
+            {hidden
+              ? <EyeOffIcon size={16} color={theme.gold} />
+              : <EyeIcon size={16} color={theme.gold} />}
+          </TouchableOpacity>
+        </View>
         <View style={s.monthRow}>
           <MonthSelector year={viewYear} month={viewMonth} onChange={(y, m) => { setViewYear(y); setViewMonth(m); }} />
-          <View style={s.calendarBtn}>
-            <CalendarIcon size={16} color={theme.gold} />
-          </View>
         </View>
       </View>
 
       <View style={s.kpiRow}>
         <View style={s.kpiCard}>
           <Text style={s.kpiLabel}>RECEITAS</Text>
-          <Text style={[s.kpiValue, { color: theme.income }]}>{fCHF(totalIncome, 0)}</Text>
+          <Text style={[s.kpiValue, { color: theme.income }]}>{formatAmount(totalIncome, 0)}</Text>
         </View>
         <View style={s.kpiCard}>
           <Text style={s.kpiLabel}>DESPESAS</Text>
-          <Text style={[s.kpiValue, { color: theme.expense }]}>{fCHF(totalExpense, 0)}</Text>
+          <Text style={[s.kpiValue, { color: theme.expense }]}>{formatAmount(totalExpense, 0)}</Text>
         </View>
       </View>
 
@@ -128,7 +134,7 @@ export default function AnaliseScreen() {
                   />
                 </View>
                 <View style={s.bottomRow}>
-                  <Text style={s.barAmount}>{fCHF(c.amount, 0)}</Text>
+                  <Text style={s.barAmount}>{formatAmount(c.amount, 0)}</Text>
                   {c.budgetPct !== null && (
                     <View style={[s.budgetBadge, overBudget && s.budgetBadgeOver]}>
                       <Text style={[s.budgetBadgeText, overBudget && s.budgetBadgeTextOver]}>
@@ -149,11 +155,11 @@ export default function AnaliseScreen() {
 const s = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg },
   scroll: { flex: 1, backgroundColor: theme.bg },
-  header: { padding: 20, paddingBottom: 12, gap: 12 },
+  header: { paddingTop: 20, paddingBottom: 12, gap: 12 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
   title: { fontSize: 28, fontWeight: '800', color: theme.white, letterSpacing: -0.5 },
-  monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  calendarBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.border },
-  calendarIcon: { fontSize: 15 },
+  eyeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
+  monthRow: { },
   kpiRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 8 },
   kpiCard: {
     flex: 1, backgroundColor: theme.surface, borderRadius: 14, padding: 14,

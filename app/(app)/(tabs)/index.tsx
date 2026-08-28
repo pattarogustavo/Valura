@@ -7,18 +7,20 @@ import { View, Text, ScrollView, ActivityIndicator, StyleSheet, TouchableOpacity
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth }         from '../../../src/context/AuthContext';
+import { usePrivacy }      from '../../../src/context/PrivacyContext';
 import { useTransactions } from '../../../src/hooks/useTransactions';
 import { useBudget }       from '../../../src/hooks/useBudget';
 import { useCategories }   from '../../../src/hooks/useBudget';
 import { theme, fCHF, MONTHS_FULL } from '../../../src/theme';
 import { MonthSelector } from '../../../src/components/MonthSelector';
-import { BellIcon, CalendarIcon, SettingsIcon } from '../../../src/components/Icons';
+import { BellIcon, SettingsIcon, EyeIcon, EyeOffIcon } from '../../../src/components/Icons';
 import { CategoryIcon } from '../../../src/components/CategoryIcon';
 
 const now = new Date();
 
 export default function SummaryScreen() {
   const { user } = useAuth();
+  const { hidden, toggle, formatAmount } = usePrivacy();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -58,11 +60,11 @@ export default function SummaryScreen() {
   const thirdKpi = isCurrentMonth
     ? {
         label: 'Limite/dia',
-        value: fCHF(Math.max(0, remaining) / Math.max(1, daysInMonth - now.getDate()), 0),
+        value: formatAmount(Math.max(0, remaining) / Math.max(1, daysInMonth - now.getDate()), 0),
       }
     : {
         label: 'Média/dia',
-        value: fCHF(totalExpense / daysInMonth, 0),
+        value: formatAmount(totalExpense / daysInMonth, 0),
       };
 
   if (!user || loading) {
@@ -79,6 +81,11 @@ export default function SummaryScreen() {
         <View style={s.headerTop}>
           <Text style={s.greeting}>Bom dia, {user.profile?.display_name ?? 'Ana'}</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity style={s.bellBtn} onPress={toggle}>
+              {hidden
+                ? <EyeOffIcon size={16} color={theme.gold} />
+                : <EyeIcon size={16} color={theme.gold} />}
+            </TouchableOpacity>
             <View style={s.bellBtn}>
               <BellIcon size={16} color={theme.gold} />
             </View>
@@ -90,16 +97,10 @@ export default function SummaryScreen() {
 
         <View style={s.monthRow}>
           <MonthSelector year={viewYear} month={viewMonth} onChange={(y, m) => { setViewYear(y); setViewMonth(m); }} />
-          <TouchableOpacity
-            style={s.calendarBtn}
-            onPress={() => { setViewYear(now.getFullYear()); setViewMonth(now.getMonth()); }}
-          >
-            <CalendarIcon size={16} color={theme.gold} />
-          </TouchableOpacity>
         </View>
 
         <Text style={s.balLabel}>SALDO DISPONÍVEL</Text>
-        <Text style={s.balance}>{fCHF(remaining)}</Text>
+        <Text style={s.balance}>{formatAmount(remaining)}</Text>
 
         <View style={s.barBg}>
           <View style={[s.barFill, {
@@ -108,16 +109,16 @@ export default function SummaryScreen() {
         </View>
 
         <View style={s.barRow}>
-          <Text style={s.barText}>Gasto: {fCHF(totalExpense, 0)}</Text>
-          <Text style={s.barText}>Orçamento: {fCHF(totalBudget, 0)}</Text>
+          <Text style={s.barText}>Gasto: {formatAmount(totalExpense, 0)}</Text>
+          <Text style={s.barText}>Orçamento: {formatAmount(totalBudget, 0)}</Text>
         </View>
       </View>
 
       {/* ── KPIs ── */}
       <View style={s.kpiRow}>
         {[
-          { l: 'Receitas', v: fCHF(totalIncome, 0), c: theme.income },
-          { l: 'Despesas', v: fCHF(totalExpense, 0), c: theme.expense },
+          { l: 'Receitas', v: formatAmount(totalIncome, 0), c: theme.income },
+          { l: 'Despesas', v: formatAmount(totalExpense, 0), c: theme.expense },
           { l: thirdKpi.label, v: thirdKpi.value, c: '#7DD3FC' },
         ].map(k => (
           <View key={k.l} style={s.kpiCard}>
@@ -156,7 +157,7 @@ export default function SummaryScreen() {
               <Text style={s.txMeta}>{cat?.label} · {tx.date.slice(8)}/{tx.date.slice(5, 7)}</Text>
             </View>
             <Text style={[s.txAmount, { color: tx.type === 'income' ? theme.income : theme.expense }]}>
-              {tx.type === 'income' ? '+' : '-'}{fCHF(tx.amount)}
+              {tx.type === 'income' ? '+' : '-'}{formatAmount(tx.amount)}
             </Text>
           </TouchableOpacity>
         );
@@ -168,21 +169,18 @@ export default function SummaryScreen() {
 const s = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg },
   scroll: { flex: 1, backgroundColor: theme.bg },
-  header: { padding: 20, paddingBottom: 22 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+  header: { paddingTop: 20, paddingBottom: 22 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, paddingHorizontal: 20 },
   greeting: { fontSize: 17, fontWeight: '700', color: theme.gold, letterSpacing: -0.2 },
   bellBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
-  bellIcon: { fontSize: 15 },
-  monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 },
-  calendarBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.border },
-  calendarIcon: { fontSize: 15 },
-  balLabel: { fontSize: 11, color: theme.textSec, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 },
-  balance: { fontSize: 32, fontWeight: '700', color: theme.white, letterSpacing: -0.5, marginBottom: 16 },
-  barBg: { height: 5, backgroundColor: 'rgba(255,255,255,.1)', borderRadius: 3, marginBottom: 8 },
+  monthRow: { marginBottom: 22 },
+  balLabel: { fontSize: 11, color: theme.textSec, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6, paddingHorizontal: 20 },
+  balance: { fontSize: 32, fontWeight: '700', color: theme.white, letterSpacing: -0.5, marginBottom: 16, paddingHorizontal: 20 },
+  barBg: { height: 5, backgroundColor: 'rgba(255,255,255,.1)', borderRadius: 3, marginBottom: 8, marginHorizontal: 20 },
   barFill: { height: 5, borderRadius: 3, backgroundColor: theme.gold },
-  barRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  barRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20 },
   barText: { fontSize: 11, color: theme.textSec },
-  kpiRow: { flexDirection: 'row', gap: 8, padding: 14 },
+  kpiRow: { flexDirection: 'row', gap: 8, padding: 14, paddingHorizontal: 20 },
   kpiCard: { flex: 1, backgroundColor: theme.surface, borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.border },
   kpiLabel: { fontSize: 9, color: theme.textSec, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 },
   kpiValue: { fontSize: 15, fontWeight: '800', letterSpacing: -0.4 },

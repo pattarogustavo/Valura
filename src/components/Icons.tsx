@@ -363,3 +363,42 @@ export function CoinIcon({ size = 18, color = '#FFFFFF', strokeWidth = 1.6 }: Ic
     </View>
   );
 }
+
+export function EyeIcon({ size = 18, color = '#FFFFFF', strokeWidth = 1.5 }: IconProps) {
+  const w = size, h = size * 0.64;
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <View
+        style={{
+          width: w, height: h, borderRadius: h / 2,
+          borderWidth: strokeWidth, borderColor: color,
+          alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <View style={{ width: h * 0.4, height: h * 0.4, borderRadius: h * 0.2, backgroundColor: color }} />
+      </View>
+    </View>
+  );
+}
+
+export function EyeOffIcon({ size = 18, color = '#FFFFFF', strokeWidth = 1.5 }: IconProps) {
+  const w = size, h = size * 0.64;
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <View
+        style={{
+          width: w, height: h, borderRadius: h / 2,
+          borderWidth: strokeWidth, borderColor: color,
+          alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <View style={{ width: h * 0.4, height: h * 0.4, borderRadius: h * 0.2, backgroundColor: color }} />
+      </View>
+      <Segment
+        x1={size * 0.1} y1={size * 0.82}
+        x2={size * 0.9} y2={size * 0.18}
+        color={color} thickness={strokeWidth}
+      />
+    </View>
+  );
+}

@@ -3,15 +3,19 @@ import { View, Text, ScrollView, StyleSheet, TextInput, ActivityIndicator, Touch
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../../../src/context/AuthContext';
+import { usePrivacy } from '../../../src/context/PrivacyContext';
 import * as TxRepo from '../../../src/repositories/transaction.repository';
-import { theme, fCHF, MONTHS_SHORT } from '../../../src/theme';
+import { theme, MONTHS_SHORT } from '../../../src/theme';
 import { LineChart, LineChartPoint } from '../../../src/components/LineChart';
+import { EyeIcon, EyeOffIcon } from '../../../src/components/Icons';
 
 const INVESTMENT_CATEGORY_SLUG = 'investment';
 const MAX_MONTHLY_YEARS = 5;
+const CURRENT_YEAR = new Date().getFullYear();
 
 interface YearProjection {
-  year: number;
+  year: number;         // 1-indexed offset from today (year 1 = next 12 months)
+  calendarYear: number; // real calendar year, e.g. 2027
   contributed: number;
   value: number;
 }
@@ -32,7 +36,7 @@ function projectYearly(
       value = value * (1 + monthlyRate) + monthlyContribution;
       contributed += monthlyContribution;
     }
-    results.push({ year: y, contributed, value });
+    results.push({ year: y, calendarYear: CURRENT_YEAR + y, contributed, value });
   }
   return results;
 }
@@ -80,6 +84,7 @@ function useInvestedSoFar(userId: string) {
 
 export default function ProjecoesScreen() {
   const { user } = useAuth();
+  const { hidden, toggle, formatAmount } = usePrivacy();
   const insets = useSafeAreaInsets();
   const profile = user?.profile;
   const investedSoFar = useInvestedSoFar(user?.id ?? '');
@@ -92,12 +97,23 @@ export default function ProjecoesScreen() {
   const [years, setYears] = useState('10');
   const [view, setView] = useState<'ano' | 'mes'>('ano');
 
+  const yearsNum = Math.max(1, Math.min(50, parseInt(years, 10) || 1));
+
+  // Year range filter for the yearly chart — defaults to the full simulated span.
+  const [fromYear, setFromYear] = useState(String(CURRENT_YEAR + 1));
+  const [toYear, setToYear] = useState(String(CURRENT_YEAR + yearsNum));
+
+  // Keep "Até" in sync when the simulated period shrinks below it.
+  useEffect(() => {
+    const maxYear = CURRENT_YEAR + yearsNum;
+    if (parseInt(toYear, 10) > maxYear) setToYear(String(maxYear));
+  }, [yearsNum]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const effectiveStartingValue = useMemo(() => {
     const other = parseFloat(initialPatrimony.replace(',', '.')) || 0;
     return other + (investedSoFar ?? 0);
   }, [initialPatrimony, investedSoFar]);
 
-  const yearsNum = Math.max(1, Math.min(50, parseInt(years, 10) || 1));
   const mc = parseFloat(monthlyContribution.replace(',', '.')) || 0;
   const rate = parseFloat(annualRate.replace(',', '.')) || 0;
 
@@ -106,33 +122,52 @@ export default function ProjecoesScreen() {
     [effectiveStartingValue, mc, rate, yearsNum]
   );
 
+  const fromYearNum = parseInt(fromYear, 10) || CURRENT_YEAR + 1;
+  const toYearNum = parseInt(toYear, 10) || CURRENT_YEAR + yearsNum;
+
+  const filteredYearlyResults = useMemo(
+    () => yearlyResults.filter(r => r.calendarYear >= fromYearNum && r.calendarYear <= toYearNum),
+    [yearlyResults, fromYearNum, toYearNum]
+  );
+
   const monthlyMonthsToShow = Math.min(yearsNum, MAX_MONTHLY_YEARS) * 12;
   const monthlyResults = useMemo(
     () => projectMonthly(effectiveStartingValue, mc, rate, monthlyMonthsToShow),
     [effectiveStartingValue, mc, rate, monthlyMonthsToShow]
   );
 
-  const final = yearlyResults[yearlyResults.length - 1];
+  // The result card reflects the end of the selected year range (or the
+  // full period if no filter narrows it).
+  const final = filteredYearlyResults[filteredYearlyResults.length - 1] ?? yearlyResults[yearlyResults.length - 1];
 
   const chartData: LineChartPoint[] = view === 'ano'
-    ? yearlyResults.map(r => ({ label: `Ano ${r.year}`, value: r.value }))
+    ? filteredYearlyResults.map(r => ({ label: String(r.calendarYear), value: r.value }))
     : monthlyResults.map(r => ({ label: r.label, value: r.value }));
 
   return (
     <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: 120 }}>
       <View style={[s.header, { paddingTop: insets.top + 16 }]}>
-        <Text style={s.title}>Projeções</Text>
-        <Text style={s.subtitle}>Simule a evolução do seu patrimônio</Text>
+        <View style={s.titleRow}>
+          <View>
+            <Text style={s.title}>Projeções</Text>
+            <Text style={s.subtitle}>Simule a evolução do seu patrimônio</Text>
+          </View>
+          <TouchableOpacity style={s.eyeBtn} onPress={toggle}>
+            {hidden
+              ? <EyeOffIcon size={16} color={theme.gold} />
+              : <EyeIcon size={16} color={theme.gold} />}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {final && (
         <View style={s.resultCard}>
-          <Text style={s.resultLabel}>Patrimônio estimado em {final.year} {final.year === 1 ? 'ano' : 'anos'}</Text>
-          <Text style={s.resultValue}>{fCHF(final.value, 0)}</Text>
+          <Text style={s.resultLabel}>Patrimônio estimado em {final.calendarYear}</Text>
+          <Text style={s.resultValue}>{formatAmount(final.value, 0)}</Text>
           <View style={s.resultRow}>
-            <Text style={s.resultSub}>Total aportado: {fCHF(final.contributed, 0)}</Text>
+            <Text style={s.resultSub}>Total aportado: {formatAmount(final.contributed, 0)}</Text>
             <Text style={[s.resultSub, { color: theme.income }]}>
-              Rendimento: {fCHF(final.value - final.contributed, 0)}
+              Rendimento: {formatAmount(final.value - final.contributed, 0)}
             </Text>
           </View>
         </View>
@@ -144,7 +179,7 @@ export default function ProjecoesScreen() {
           <ActivityIndicator size="small" color={theme.gold} style={{ marginTop: 6 }} />
         ) : (
           <>
-            <Text style={s.investedValue}>{fCHF(investedSoFar, 0)}</Text>
+            <Text style={s.investedValue}>{formatAmount(investedSoFar, 0)}</Text>
             <Text style={s.investedHint}>
               Soma de todas as transações na categoria Investimento.
             </Text>
@@ -158,7 +193,7 @@ export default function ProjecoesScreen() {
         <Field label="Rentabilidade anual (%)" value={annualRate} onChangeText={setAnnualRate} />
         <Field label="Período (anos)" value={years} onChangeText={setYears} />
         <Text style={s.formHint}>
-          A simulação soma Patrimônio inicial + Valor investido como ponto de partida: {fCHF(effectiveStartingValue, 0)}.
+          A simulação soma Patrimônio inicial + Valor investido como ponto de partida: {formatAmount(effectiveStartingValue, 0)}.
         </Text>
       </View>
 
@@ -179,6 +214,27 @@ export default function ProjecoesScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {view === 'ano' && (
+        <View style={s.yearFilterRow}>
+          <Text style={s.yearFilterLabel}>De:</Text>
+          <TextInput
+            style={s.yearFilterInput}
+            value={fromYear}
+            onChangeText={setFromYear}
+            keyboardType="number-pad"
+            maxLength={4}
+          />
+          <Text style={s.yearFilterLabel}>Até:</Text>
+          <TextInput
+            style={s.yearFilterInput}
+            value={toYear}
+            onChangeText={setToYear}
+            keyboardType="number-pad"
+            maxLength={4}
+          />
+        </View>
+      )}
 
       {view === 'mes' && yearsNum > MAX_MONTHLY_YEARS && (
         <Text style={s.monthlyNote}>
@@ -221,8 +277,10 @@ function Field({
 const s = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: theme.bg },
   header: { padding: 20, paddingBottom: 12 },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   title: { fontSize: 28, fontWeight: '800', color: theme.white, letterSpacing: -0.5 },
   subtitle: { fontSize: 14, color: theme.textSec, marginTop: 2 },
+  eyeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
   resultCard: {
     marginHorizontal: 16, backgroundColor: theme.surface,
     borderRadius: 14, borderWidth: 1, borderColor: theme.border, padding: 18,
@@ -249,12 +307,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 8, fontSize: 14, textAlign: 'right',
     color: theme.inputText, backgroundColor: theme.inputBg,
   },
-  totalRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: theme.goldSoft, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 10,
-  },
-  totalLabel: { fontSize: 12, color: theme.textSec, fontWeight: '600' },
-  totalValue: { fontSize: 14, color: theme.gold, fontWeight: '800' },
   formHint: { fontSize: 11, color: theme.textSec, marginTop: 2, lineHeight: 16 },
   sectionHeaderRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -266,6 +318,16 @@ const s = StyleSheet.create({
   toggleBtnActive: { backgroundColor: theme.gold },
   toggleText: { fontSize: 12, fontWeight: '600', color: theme.textSec },
   toggleTextActive: { color: theme.bg },
+  yearFilterRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginHorizontal: 16, marginBottom: 10,
+  },
+  yearFilterLabel: { fontSize: 12, color: theme.textSec, fontWeight: '600' },
+  yearFilterInput: {
+    width: 66, borderWidth: 1, borderColor: theme.border, borderRadius: 8,
+    paddingHorizontal: 8, paddingVertical: 6, fontSize: 13, textAlign: 'center',
+    color: theme.inputText, backgroundColor: theme.inputBg,
+  },
   monthlyNote: { fontSize: 11, color: theme.textSec, marginHorizontal: 16, marginBottom: 8 },
   chartBox: {
     marginHorizontal: 16, backgroundColor: theme.white, borderRadius: 14,
