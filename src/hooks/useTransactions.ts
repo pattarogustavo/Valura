@@ -14,8 +14,8 @@ interface UseTransactionsReturn {
   loading:      boolean;
   error:        string | null;
   addTransaction:    (input: CreateTransactionInput) => Promise<{ ok: boolean; error?: string }>;
-  updateTransaction: (id: string, input: Partial<CreateTransactionInput>) => Promise<void>;
-  deleteTransaction: (id: string) => Promise<void>;
+  updateTransaction: (id: string, input: Partial<CreateTransactionInput>) => Promise<{ ok: boolean; error?: string }>;
+  deleteTransaction: (id: string) => Promise<{ ok: boolean; error?: string }>;
   refresh:           () => Promise<void>;
 }
 
@@ -108,21 +108,26 @@ export function useTransactions(opts: UseTransactionsOptions): UseTransactionsRe
       setTransactions(prev =>
         prev.map(t => t.id === id ? result.data : t)
       );
+      return { ok: true };
     } else {
       await load(); // re-sync from DB on failure
       setError(result.error);
+      return { ok: false, error: result.error };
     }
   }, [userId, load]);
 
   const deleteTransaction = useCallback(async (id: string) => {
     // Optimistic delete
+    const previous = transactions;
     setTransactions(prev => prev.filter(t => t.id !== id));
     const result = await TxRepo.deleteTransaction(userId, id);
     if (!result.ok) {
-      await load(); // restore on failure
+      setTransactions(previous); // restore on failure
       setError(result.error);
+      return { ok: false, error: result.error };
     }
-  }, [userId, load]);
+    return { ok: true };
+  }, [userId, transactions]);
 
   return {
     transactions,

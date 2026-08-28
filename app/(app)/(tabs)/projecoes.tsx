@@ -84,7 +84,7 @@ export default function ProjecoesScreen() {
   const profile = user?.profile;
   const investedSoFar = useInvestedSoFar(user?.id ?? '');
 
-  const [otherAssets, setOtherAssets] = useState(String(profile?.net_worth ?? 0));
+  const [initialPatrimony, setInitialPatrimony] = useState(String(profile?.net_worth ?? 0));
   const [monthlyContribution, setMonthlyContribution] = useState(
     String(profile?.monthly_income ? Math.round(profile.monthly_income * 0.2) : 500)
   );
@@ -93,9 +93,9 @@ export default function ProjecoesScreen() {
   const [view, setView] = useState<'ano' | 'mes'>('ano');
 
   const effectiveStartingValue = useMemo(() => {
-    const other = parseFloat(otherAssets.replace(',', '.')) || 0;
+    const other = parseFloat(initialPatrimony.replace(',', '.')) || 0;
     return other + (investedSoFar ?? 0);
-  }, [otherAssets, investedSoFar]);
+  }, [initialPatrimony, investedSoFar]);
 
   const yearsNum = Math.max(1, Math.min(50, parseInt(years, 10) || 1));
   const mc = parseFloat(monthlyContribution.replace(',', '.')) || 0;
@@ -139,28 +139,27 @@ export default function ProjecoesScreen() {
       )}
 
       <View style={s.investedCard}>
-        <Text style={s.investedLabel}>INVESTIDO ATÉ O MOMENTO</Text>
+        <Text style={s.investedLabel}>VALOR INVESTIDO</Text>
         {investedSoFar === null ? (
           <ActivityIndicator size="small" color={theme.gold} style={{ marginTop: 6 }} />
         ) : (
           <>
             <Text style={s.investedValue}>{fCHF(investedSoFar, 0)}</Text>
             <Text style={s.investedHint}>
-              Soma de todas as transações na categoria Investimento — já incluído no patrimônio inicial da simulação abaixo.
+              Soma de todas as transações na categoria Investimento.
             </Text>
           </>
         )}
       </View>
 
       <View style={s.formCard}>
-        <Field label="Outros ativos (CHF)" value={otherAssets} onChangeText={setOtherAssets} />
-        <View style={s.totalRow}>
-          <Text style={s.totalLabel}>Patrimônio inicial total</Text>
-          <Text style={s.totalValue}>{fCHF(effectiveStartingValue, 0)}</Text>
-        </View>
+        <Field label="Patrimônio inicial (CHF)" value={initialPatrimony} onChangeText={setInitialPatrimony} />
         <Field label="Aporte mensal (CHF)" value={monthlyContribution} onChangeText={setMonthlyContribution} />
         <Field label="Rentabilidade anual (%)" value={annualRate} onChangeText={setAnnualRate} />
         <Field label="Período (anos)" value={years} onChangeText={setYears} />
+        <Text style={s.formHint}>
+          A simulação soma Patrimônio inicial + Valor investido como ponto de partida: {fCHF(effectiveStartingValue, 0)}.
+        </Text>
       </View>
 
       <View style={s.sectionHeaderRow}>
@@ -256,6 +255,7 @@ const s = StyleSheet.create({
   },
   totalLabel: { fontSize: 12, color: theme.textSec, fontWeight: '600' },
   totalValue: { fontSize: 14, color: theme.gold, fontWeight: '800' },
+  formHint: { fontSize: 11, color: theme.textSec, marginTop: 2, lineHeight: 16 },
   sectionHeaderRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginHorizontal: 16, marginTop: 18, marginBottom: 10,

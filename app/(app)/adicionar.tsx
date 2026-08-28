@@ -4,13 +4,14 @@ import {
   TouchableOpacity, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { useCategories } from '../../src/hooks/useBudget';
 import { theme } from '../../src/theme';
 import { DatePickerField } from '../../src/components/DatePickerField';
 import { CategoryIcon } from '../../src/components/CategoryIcon';
+import type { Transaction } from '../../src/types';
 
 const now = new Date();
 
@@ -27,17 +28,26 @@ export default function AdicionarScreen() {
   const { user } = useAuth();
   const userId = user!.id;
 
+  // If a transaction was passed in (tapping a row to edit), we're in edit mode.
+  const { transaction: transactionParam } = useLocalSearchParams<{ transaction?: string }>();
+  const editingTx: Transaction | null = useMemo(() => {
+    if (!transactionParam) return null;
+    try { return JSON.parse(transactionParam) as Transaction; } catch { return null; }
+  }, [transactionParam]);
+  const isEditing = !!editingTx;
+
   const { categories } = useCategories(userId);
-  const { addTransaction } = useTransactions({
+  const { addTransaction, updateTransaction, deleteTransaction } = useTransactions({
     userId, year: now.getFullYear(), month: now.getMonth(),
   });
 
-  const [type, setType] = useState<'expense' | 'income'>('expense');
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [catId, setCatId] = useState<string | null>(null);
-  const [date, setDate] = useState(todayISO());
+  const [type, setType] = useState<'expense' | 'income'>(editingTx?.type ?? 'expense');
+  const [description, setDescription] = useState(editingTx?.description ?? '');
+  const [amount, setAmount] = useState(editingTx ? String(editingTx.amount) : '');
+  const [catId, setCatId] = useState<string | null>(editingTx?.cat_id ?? null);
+  const [date, setDate] = useState(editingTx?.date ?? todayISO());
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const filteredCategories = useMemo(
     () => categories.filter(c => c.type === type),
@@ -49,14 +59,20 @@ export default function AdicionarScreen() {
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
-    const result = await addTransaction({
+
+    const payload = {
       description: description.trim(),
       amount: parseFloat(amount.replace(',', '.')),
       cat_id: catId!,
       type,
       date,
       notes: null,
-    });
+    };
+
+    const result = isEditing
+      ? await updateTransaction(editingTx!.id, payload)
+      : await addTransaction(payload);
+
     setSaving(false);
 
     if (result.ok) {
@@ -64,6 +80,31 @@ export default function AdicionarScreen() {
     } else {
       Alert.alert('Erro ao salvar', result.error ?? 'Não foi possível salvar a transação. Tente novamente.');
     }
+  };
+
+  const handleDelete = () => {
+    if (!editingTx) return;
+    Alert.alert(
+      'Apagar transação',
+      `Tem certeza que deseja apagar "${editingTx.description}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Apagar',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            const result = await deleteTransaction(editingTx.id);
+            setDeleting(false);
+            if (result.ok) {
+              router.back();
+            } else {
+              Alert.alert('Erro', result.error ?? 'Não foi possível apagar a transação.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -76,7 +117,7 @@ export default function AdicionarScreen() {
         contentContainerStyle={{ padding: 20, paddingTop: insets.top + 16, paddingBottom: 60 }}
       >
         <View style={s.headerRow}>
-          <Text style={s.title}>Nova transação</Text>
+          <Text style={s.title}>{isEditing ? 'Editar transação' : 'Nova transação'}</Text>
           <TouchableOpacity onPress={() => router.back()}>
             <Text style={s.close}>Fechar</Text>
           </TouchableOpacity>
@@ -146,8 +187,20 @@ export default function AdicionarScreen() {
           onPress={handleSave}
           disabled={!canSave || saving}
         >
-          <Text style={s.saveBtnText}>{saving ? 'Salvando…' : 'Salvar transação'}</Text>
+          <Text style={s.saveBtnText}>
+            {saving ? 'Salvando…' : isEditing ? 'Salvar alterações' : 'Salvar transação'}
+          </Text>
         </TouchableOpacity>
+
+        {isEditing && (
+          <TouchableOpacity
+            style={[s.deleteBtn, deleting && { opacity: 0.5 }]}
+            onPress={handleDelete}
+            disabled={deleting}
+          >
+            <Text style={s.deleteBtnText}>{deleting ? 'Apagando…' : 'Apagar transação'}</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -188,4 +241,9 @@ const s = StyleSheet.create({
     paddingVertical: 15, alignItems: 'center',
   },
   saveBtnText: { color: theme.bg, fontSize: 15, fontWeight: '700' },
+  deleteBtn: {
+    marginTop: 12, borderRadius: 12, paddingVertical: 15, alignItems: 'center',
+    borderWidth: 1, borderColor: theme.danger,
+  },
+  deleteBtnText: { color: theme.danger, fontSize: 15, fontWeight: '700' },
 });
