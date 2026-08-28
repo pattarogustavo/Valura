@@ -1,3 +1,80 @@
+#!/bin/bash
+set -e
+echo "Revertendo temporariamente gesture-handler e RevenueCat (voltando ao que o binario instalado suporta)..."
+
+# 1. Remove as duas dependencias nativas do package.json, sem tocar no resto
+python3 << 'PYEOF'
+import json
+
+with open('package.json') as f:
+    pkg = json.load(f)
+
+removed = []
+for dep in ['react-native-gesture-handler', 'react-native-purchases']:
+    if dep in pkg.get('dependencies', {}):
+        del pkg['dependencies'][dep]
+        removed.append(dep)
+
+with open('package.json', 'w') as f:
+    json.dump(pkg, f, indent=2)
+    f.write('\n')
+
+print('Removido do package.json:', removed if removed else '(nada precisou ser removido)')
+PYEOF
+
+cat > app/_layout.tsx << 'INNEREOF'
+import React, { useEffect } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider, useAuth } from '../src/context/AuthContext';
+import { theme } from '../src/theme';
+
+// ─── AUTH GATE ────────────────────────────────────────────────────────────────
+function RootNavigator() {
+  const { user, loading, initialized } = useAuth();
+  const router   = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (!initialized) return;
+    const inAuthGroup = segments[0] === '(auth)';
+    if (!user && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    } else if (user && inAuthGroup) {
+      router.replace('/(app)');
+    }
+  }, [user, initialized, segments]);
+
+  if (!initialized || loading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg }}>
+        <ActivityIndicator color={theme.gold} size="large" />
+      </View>
+    );
+  }
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(app)" />
+    </Stack>
+  );
+}
+
+// ─── ROOT LAYOUT ──────────────────────────────────────────────────────────────
+export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
+    </SafeAreaProvider>
+  );
+}
+INNEREOF
+
+cat > src/services/subscription.service.ts << 'INNEREOF'
 import * as SubscriptionRepo from '../repositories/subscription.repository';
 import type { Subscription, SubscriptionStatus } from '../types';
 
@@ -70,3 +147,25 @@ export async function startPurchase(productId?: string): Promise<{ ok: boolean; 
 export async function restorePurchases(): Promise<{ ok: boolean; error?: string }> {
   return { ok: false, error: 'Compras ainda não estão disponíveis nesta versão do app.' };
 }
+INNEREOF
+
+echo "Removendo node_modules e reinstalando limpo..."
+rm -rf node_modules
+npm install
+
+npx tsc --noEmit
+
+echo "Confirmando ausencia de imports nativos novos..."
+if grep -rlE "from 'react-native-gesture-handler'|from 'react-native-purchases'|from \"react-native-gesture-handler\"|from \"react-native-purchases\"" app/ src/ 2>/dev/null; then
+  echo "AVISO: ainda ha import nativo, revisar"
+else
+  echo "OK: seguro para o binario ja instalado"
+fi
+
+git add -A
+git commit -m "Temporarily revert gesture-handler/RevenueCat SDK (no build credit yet) - JS-only testing"
+git push
+
+echo ""
+echo "Pronto! Agora roda:"
+echo "  npx expo start --dev-client --tunnel --clear"
