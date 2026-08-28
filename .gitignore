@@ -1,0 +1,19 @@
+# Environment variables (contains keys — never commit)
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Expo / native build output
+.expo/
+ios/
+android/
+
+# Logs
+*.log
+npm-debug.*
+
+# OS
+.DS_Store
