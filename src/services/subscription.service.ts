@@ -1,23 +1,83 @@
+import { Platform } from 'react-native';
+import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 import * as SubscriptionRepo from '../repositories/subscription.repository';
 import type { Subscription, SubscriptionStatus } from '../types';
 
 /**
  * SubscriptionService — the ONLY place in the app that should know about
- * subscription/entitlement logic. UI code should call these functions
- * instead of reading `subscription.status` directly, so that when the
- * RevenueCat native SDK is wired in later, only this file needs to change.
+ * RevenueCat or subscription/entitlement logic. UI code should call these
+ * functions instead of touching `Purchases` or `subscription.status`
+ * directly.
  *
- * TEMPORARY STATE: reverted to stub purchase actions because the currently
- * installed dev-client binary doesn't have react-native-purchases compiled
- * in yet (no build credit available). Status reads still work normally —
- * they come from Supabase, not from the SDK. Re-apply the RevenueCat SDK
- * version (apply_final_batch.sh) before the next real build.
+ * Two data paths, on purpose:
+ *  - STATUS (hasPremiumAccess, isTrialing, ...) is read from Supabase's
+ *    `subscriptions` table, kept current by the RevenueCat webhook. This
+ *    is the single source of truth shown across every device.
+ *  - ACTIONS (startPurchase, restorePurchases, identifyUser) talk to the
+ *    RevenueCat SDK directly, since those are inherently on-device/App
+ *    Store operations. A successful purchase still flows back through
+ *    the webhook to update Supabase, same as any other event.
  */
 
 const ACTIVE_STATUSES: SubscriptionStatus[] = ['trialing', 'active', 'cancelled', 'billing_issue', 'grace_period'];
 // Note: 'cancelled' still grants access — the user turned off auto-renew
 // but already paid through `expires_at`. The expiry check below is what
 // actually cuts off access once the paid period truly ends.
+
+const REVENUECAT_ENTITLEMENT_ID = 'premium';
+
+let configured = false;
+
+// ─── SDK LIFECYCLE ──────────────────────────────────────────────────────────
+
+/** Call once, as early as possible (root layout mount). No-ops safely if
+ *  no API key is set yet (e.g. RevenueCat not configured in this build). */
+export function configureSDK(): void {
+  if (configured) return;
+
+  const apiKey = Platform.select({
+    ios:     process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
+    android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
+    default: undefined,
+  });
+
+  if (!apiKey) {
+    if (__DEV__) {
+      console.warn('[SubscriptionService] No RevenueCat API key set — purchases are disabled in this build.');
+    }
+    return;
+  }
+
+  Purchases.configure({ apiKey });
+  if (__DEV__) Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+  configured = true;
+}
+
+/**
+ * Associates the Supabase user with a RevenueCat customer. Using the
+ * Supabase user id as RevenueCat's App User ID keeps the two systems in
+ * lockstep (the webhook receives this same id as `event.app_user_id`).
+ */
+export async function identifyUser(userId: string): Promise<void> {
+  if (!configured) return;
+  try {
+    await Purchases.logIn(userId);
+  } catch (e) {
+    if (__DEV__) console.warn('[SubscriptionService] identifyUser failed:', e);
+  }
+}
+
+/** Clears the RevenueCat identity on sign-out. */
+export async function resetIdentity(): Promise<void> {
+  if (!configured) return;
+  try {
+    await Purchases.logOut();
+  } catch (e) {
+    if (__DEV__) console.warn('[SubscriptionService] resetIdentity failed:', e);
+  }
+}
+
+// ─── STATUS (read from Supabase) ───────────────────────────────────────────
 
 export async function getSubscription(userId: string): Promise<Subscription | null> {
   const result = await SubscriptionRepo.getSubscription(userId);
@@ -51,22 +111,43 @@ export function willRenew(subscription: Subscription | null): boolean {
   return subscription?.will_renew ?? false;
 }
 
-export function configureSDK(): void {
-  if (__DEV__) console.info('[SubscriptionService] configureSDK stub — RevenueCat SDK not built into this binary yet.');
-}
-
-export async function identifyUser(userId: string): Promise<void> {
-  if (__DEV__) console.info('[SubscriptionService] identifyUser stub:', userId);
-}
-
-export async function resetIdentity(): Promise<void> {
-  if (__DEV__) console.info('[SubscriptionService] resetIdentity stub');
-}
+// ─── PURCHASE ACTIONS (talk to RevenueCat directly) ────────────────────────
 
 export async function startPurchase(productId?: string): Promise<{ ok: boolean; error?: string }> {
-  return { ok: false, error: 'Compras ainda não estão disponíveis nesta versão do app.' };
+  if (!configured) {
+    return { ok: false, error: 'Compras ainda não estão disponíveis nesta versão do app.' };
+  }
+  try {
+    const offerings = await Purchases.getOfferings();
+    const available = offerings.current?.availablePackages ?? [];
+    const pkg = productId
+      ? available.find(p => p.product.identifier === productId)
+      : available[0];
+
+    if (!pkg) {
+      return { ok: false, error: 'Nenhum plano disponível no momento. Tente novamente mais tarde.' };
+    }
+
+    await Purchases.purchasePackage(pkg);
+    return { ok: true };
+  } catch (e: any) {
+    if (e?.userCancelled) return { ok: false, error: 'Compra cancelada.' };
+    return { ok: false, error: e?.message ?? 'Não foi possível concluir a compra.' };
+  }
 }
 
 export async function restorePurchases(): Promise<{ ok: boolean; error?: string }> {
-  return { ok: false, error: 'Compras ainda não estão disponíveis nesta versão do app.' };
+  if (!configured) {
+    return { ok: false, error: 'Compras ainda não estão disponíveis nesta versão do app.' };
+  }
+  try {
+    const customerInfo = await Purchases.restorePurchases();
+    const hasEntitlement = !!customerInfo.entitlements.active[REVENUECAT_ENTITLEMENT_ID];
+    if (!hasEntitlement) {
+      return { ok: false, error: 'Nenhuma compra anterior encontrada para esta conta.' };
+    }
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: e?.message ?? 'Não foi possível restaurar as compras.' };
+  }
 }

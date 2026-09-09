@@ -1,10 +1,14 @@
 import React, { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { PrivacyProvider } from '../src/context/PrivacyContext';
 import { theme } from '../src/theme';
+import { configureSDK } from '../src/services/subscription.service';
+
+configureSDK();
 
 // ─── AUTH GATE ────────────────────────────────────────────────────────────────
 function RootNavigator() {
@@ -41,12 +45,14 @@ function RootNavigator() {
 // ─── ROOT LAYOUT ──────────────────────────────────────────────────────────────
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <PrivacyProvider>
-          <RootNavigator />
-        </PrivacyProvider>
-      </AuthProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <PrivacyProvider>
+            <RootNavigator />
+          </PrivacyProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -15,6 +15,7 @@ import { theme, fCHF, MONTHS_FULL } from '../../../src/theme';
 import { MonthSelector } from '../../../src/components/MonthSelector';
 import { BellIcon, SettingsIcon, EyeIcon, EyeOffIcon } from '../../../src/components/Icons';
 import { CategoryIcon } from '../../../src/components/CategoryIcon';
+import { SwipeableRow } from '../../../src/components/SwipeableRow';
 
 const now = new Date();
 
@@ -31,7 +32,7 @@ export default function SummaryScreen() {
   const userId = user?.id ?? '';
   const monthYear = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
 
-  const { transactions, loading: txLoading, refresh: refreshTx } = useTransactions({ userId, year: viewYear, month: viewMonth });
+  const { transactions, loading: txLoading, refresh: refreshTx, deleteTransaction } = useTransactions({ userId, year: viewYear, month: viewMonth });
   const { budget, loading: budLoading, refresh: refreshBudget } = useBudget(userId, monthYear);
   const { categories, loading: catLoading, refresh: refreshCategories } = useCategories(userId);
 
@@ -140,26 +141,27 @@ export default function SummaryScreen() {
       {transactions.slice(0, 8).map(tx => {
         const cat = categories.find(c => c.slug === tx.cat_id) ?? categories[categories.length - 1];
         return (
-          <TouchableOpacity
-            key={tx.id}
-            style={s.txRow}
-            activeOpacity={0.7}
-            onPress={() => router.push({
-              pathname: '/(app)/adicionar',
-              params: { transaction: JSON.stringify(tx) },
-            })}
-          >
-            <View style={[s.txIcon, { backgroundColor: cat?.bg ?? '#233150' }]}>
-              <CategoryIcon slug={cat?.slug ?? 'other'} size={18} color={cat?.color ?? theme.textSec} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.txDesc}>{tx.description}</Text>
-              <Text style={s.txMeta}>{cat?.label} · {tx.date.slice(8)}/{tx.date.slice(5, 7)}</Text>
-            </View>
-            <Text style={[s.txAmount, { color: tx.type === 'income' ? theme.income : theme.expense }]}>
-              {tx.type === 'income' ? '+' : '-'}{formatAmount(tx.amount)}
-            </Text>
-          </TouchableOpacity>
+          <SwipeableRow key={tx.id} onDelete={() => deleteTransaction(tx.id)}>
+            <TouchableOpacity
+              style={s.txRow}
+              activeOpacity={0.7}
+              onPress={() => router.push({
+                pathname: '/(app)/adicionar',
+                params: { transaction: JSON.stringify(tx) },
+              })}
+            >
+              <View style={[s.txIcon, { backgroundColor: cat?.bg ?? '#233150' }]}>
+                <CategoryIcon slug={cat?.slug ?? 'other'} size={18} color={cat?.color ?? theme.textSec} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.txDesc}>{tx.description}</Text>
+                <Text style={s.txMeta}>{cat?.label} · {tx.date.slice(8)}/{tx.date.slice(5, 7)}</Text>
+              </View>
+              <Text style={[s.txAmount, { color: tx.type === 'income' ? theme.income : theme.expense }]}>
+                {tx.type === 'income' ? '+' : '-'}{formatAmount(tx.amount)}
+              </Text>
+            </TouchableOpacity>
+          </SwipeableRow>
         );
       })}
     </ScrollView>
