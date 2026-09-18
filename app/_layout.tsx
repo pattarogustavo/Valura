@@ -8,13 +8,23 @@ import { PrivacyProvider } from '../src/context/PrivacyContext';
 import { theme } from '../src/theme';
 import { configureSDK } from '../src/services/subscription.service';
 
-configureSDK();
-
 // ─── AUTH GATE ────────────────────────────────────────────────────────────────
 function RootNavigator() {
   const { user, loading, initialized } = useAuth();
   const router   = useRouter();
   const segments = useSegments();
+
+  // IMPORTANT: configureSDK() used to run at module load time (before this
+  // component ever mounted, before the native bridge/app delegate had
+  // necessarily finished setting up). That matched a crash pattern we've
+  // hit before with other native modules — calling into native code too
+  // early crashes the whole app with no JS-catchable error. Now it only
+  // runs once the app has actually mounted, and configureSDK() itself is
+  // wrapped in try/catch so a RevenueCat issue (bad key, missing
+  // capability, etc.) degrades gracefully instead of crashing.
+  useEffect(() => {
+    configureSDK();
+  }, []);
 
   useEffect(() => {
     if (!initialized) return;
