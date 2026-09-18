@@ -1,3 +1,8 @@
+#!/bin/bash
+set -e
+echo "Removendo plugins de crash-logger customizados (suspeitos do erro 'No architectures in the binary')..."
+
+cat > app.json << 'FILEEOF'
 {
   "expo": {
     "name": "Valura",
@@ -49,3 +54,24 @@
     }
   }
 }
+FILEEOF
+
+echo "Testando prebuild local antes de gastar um build de verdade..."
+rm -rf ios
+npx expo prebuild --platform ios --no-install
+
+if grep -q "ValuraCrashLogger" ios/*.xcodeproj/project.pbxproj 2>/dev/null; then
+  echo "AVISO: ValuraCrashLogger ainda aparece no projeto, revisar"
+else
+  echo "OK: nenhuma cirurgia manual no pbxproj presente"
+fi
+rm -rf ios
+
+echo "Fazendo commit..."
+git add -A
+git commit -m "Remove custom crash-logger plugins (raw pbxproj surgery) - likely cause of 'No architectures in binary' error"
+git push
+
+echo ""
+echo "Pronto! Gera o build de novo:"
+echo "  eas build --platform ios --profile production --auto-submit"
